@@ -21,11 +21,11 @@ function MultiFloatingBtn() {
 function QQBadge() {
   return (
     <a
-      href="https://qm.qq.com/q/423205561"
+      href="https://qun.qq.com/universal-share/share?ac=1&authKey=N68%2F5p%2BgIOThscTpITueb1IFK4UHIJ5maKATDbnxe4xRUvgyqaUDiLGllvQRUFSp&busi_data=eyJncm91cENvZGUiOiI0MjMyMDU1NjEiLCJ0b2tlbiI6IktFMUorRkJsdjdxNTZHbVRld3poUUdEQkdHMlVLWEJMT3QyeXArNlk5QlBmV3dmalJ2TWtTZnVlMndzaW94VXYiLCJ1aW4iOiIyMTgyMTcxOTI0In0%3D&data=4ym8CHqXscDTDDR48FBWwe5_2cgg_iYc6Kphj2iurqDiB-oVeGOCtfPM_vUf8prTGtZE8VtQLXA2K5JbCTSeKA&svctype=4&tempid=h5_group_info"
       target="_blank"
       rel="noopener noreferrer"
       className="qq-badge"
-      title="加入QQ交流群 423205561"
+      title="点击加入QQ交流群 423205561"
     >
       <span className="qq-icon">QQ</span>
       <span className="qq-text">交流群</span>
