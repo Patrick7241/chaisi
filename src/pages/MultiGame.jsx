@@ -447,7 +447,7 @@ export default function MultiGame() {
         <header className="app-header">
           <div className="app-title">
             <span className="title-main">局域网对战</span>
-            <span className="title-sub">点对点联机 · 无需服务器</span>
+            <span className="title-sub"> </span>
           </div>
           <Link className="nav-link" to="/">← 返回</Link>
         </header>
