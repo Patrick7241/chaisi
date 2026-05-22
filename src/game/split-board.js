@@ -82,18 +82,22 @@ export function drawBoard() {
   ctx.stroke();
   ctx.restore();
 
-  // ── 4. Zone labels ────────────────────────────────────────────────────────
+  // ── 4. Zone labels (always upright even when board is CSS-flipped) ─────────
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
-  ctx.fillStyle = 'rgba(80, 40, 10, 0.45)';
-  ctx.font = 'bold 10px serif';
-  ctx.fillText('▲ 中国象棋区 ▲', BOARD_PADDING + 4 * CELL_SIZE,
-    BOARD_PADDING + 3.5 * CELL_SIZE);
-
-  ctx.fillStyle = 'rgba(40, 40, 80, 0.45)';
-  ctx.fillText('▼ 国际象棋区 ▼', BOARD_PADDING + 4 * CELL_SIZE,
-    BOARD_PADDING + 7.5 * CELL_SIZE);
+  [
+    ['▲ 中国象棋区 ▲', BOARD_PADDING + 4 * CELL_SIZE, BOARD_PADDING + 3.5 * CELL_SIZE, 'rgba(80, 40, 10, 0.45)'],
+    ['▼ 国际象棋区 ▼', BOARD_PADDING + 4 * CELL_SIZE, BOARD_PADDING + 7.5 * CELL_SIZE, 'rgba(40, 40, 80, 0.45)'],
+  ].forEach(([text, x, y, color]) => {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.font = 'bold 10px serif';
+    ctx.translate(x, y);
+    if (_flipped) ctx.rotate(Math.PI);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  });
 
   // ── 5. Grid lines ─────────────────────────────────────────────────────────
   // Horizontal lines

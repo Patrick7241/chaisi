@@ -129,14 +129,22 @@ export function drawBoard() {
   drawPalace(RED_PALACE);
   drawPalace(BLACK_PALACE);
 
-  // River label
+  // River label (always upright even when board is CSS-flipped)
   ctx.fillStyle = 'rgba(30, 80, 160, 0.65)';
   ctx.font = 'bold 12px serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const riverMidY = riverY + riverH / 2;
-  ctx.fillText('楚  河', BOARD_PADDING + 2 * CELL_SIZE, riverMidY);
-  ctx.fillText('汉  界', BOARD_PADDING + 6 * CELL_SIZE, riverMidY);
+  [
+    ['楚  河', BOARD_PADDING + 2 * CELL_SIZE],
+    ['汉  界', BOARD_PADDING + 6 * CELL_SIZE],
+  ].forEach(([text, x]) => {
+    ctx.save();
+    ctx.translate(x, riverMidY);
+    if (_flipped) ctx.rotate(Math.PI);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  });
 
   // Coordinate labels
   ctx.fillStyle = COORD_COLOR;
