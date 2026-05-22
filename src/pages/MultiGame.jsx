@@ -21,7 +21,7 @@ import { CANVAS_WIDTH as SW, CANVAS_HEIGHT as SH }  from '../game/split-constant
 // ── Per-board-type config ─────────────────────────────────────────────────────
 const CFG = {
   hybrid: {
-    label: '混合棋局 9×10', B: HB, GS: HGS,
+    label: '中国象棋棋盘 9×10', B: HB, GS: HGS,
     W: HW, H: HH, boardId: 'board-canvas', uiId: 'ui-canvas',
     toGrid: HB.pixelToGrid,
     getSelected:  gs => gs.selectedPiece,
@@ -59,13 +59,13 @@ function loadSavedConfigs() {
   const configs = [];
 
   // Default configs
-  configs.push({ id: 'hybrid-default',  boardType: 'hybrid', pieces: null, label: '混合棋局 9×10', isCustom: false, boardLabel: '混合棋局' });
+  configs.push({ id: 'hybrid-default',  boardType: 'hybrid', pieces: null, label: '中国象棋棋盘 9×10', isCustom: false, boardLabel: '中国象棋棋盘' });
   configs.push({ id: 'intl-default',    boardType: 'intl',   pieces: null, label: '国际棋局 8×8',  isCustom: false, boardLabel: '国际棋局' });
   configs.push({ id: 'split-default',   boardType: 'split',  pieces: null, label: '分界棋盘 9×10', isCustom: false, boardLabel: '分界棋盘' });
 
   // Custom layouts
   const types = [
-    { boardType: 'hybrid', newKey: 'chess_layouts_hybrid', oldKey: 'chess_custom_layout', boardLabel: '混合棋局' },
+    { boardType: 'hybrid', newKey: 'chess_layouts_hybrid', oldKey: 'chess_custom_layout', boardLabel: '中国象棋棋盘' },
     { boardType: 'intl',   newKey: 'chess_layouts_intl',   oldKey: 'intl_hybrid_layout',  boardLabel: '国际棋局' },
     { boardType: 'split',  newKey: 'chess_layouts_split',  oldKey: 'chess_split_layout',  boardLabel: '分界棋盘' },
   ];
@@ -118,7 +118,7 @@ export default function MultiGame() {
   const [savedConfigs, setSavedConfigs] = useState(() => loadSavedConfigs());
   const [selectedConfig, setSelectedConfig] = useState(() => {
     const c = loadSavedConfigs();
-    return c[0] ?? { id: 'hybrid-default', boardType: 'hybrid', pieces: null, label: '混合棋局 9×10', boardLabel: '混合棋局' };
+    return c[0] ?? { id: 'hybrid-default', boardType: 'hybrid', pieces: null, label: '中国象棋棋盘 9×10', boardLabel: '中国象棋棋盘' };
   });
   const [myColor,   setMyColor]   = useState('red');
 

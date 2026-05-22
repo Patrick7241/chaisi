@@ -68,7 +68,7 @@ function DialogModal({ config, onClose }) {
     options     = [],
   } = config;
 
-  const [inputVal, setInputVal] = useState('');
+  const [inputVal, setInputVal] = useState(config.defaultValue ?? '');
 
   function handleConfirm() {
     if (type === 'prompt') {

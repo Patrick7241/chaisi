@@ -64,6 +64,21 @@ export default function SplitGame() {
   }
 
   useEffect(() => {
+    const pending = sessionStorage.getItem('chess_pending_edit');
+    if (pending) {
+      try {
+        const { boardType, pieces } = JSON.parse(pending);
+        if (boardType === 'split') {
+          sessionStorage.removeItem('chess_pending_edit');
+          gsRef.current.board = new BoardState();
+          pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
+          isSetupModeRef.current = true;
+          setIsSetupMode(true);
+          setupPieceTypeRef.current = null;
+          setSetupPieceType(null);
+        }
+      } catch (_) {}
+    }
     initCanvas(boardCanvasRef.current);
     initCanvas(uiCanvasRef.current);
     canvasReady.current = true;
@@ -277,10 +292,11 @@ export default function SplitGame() {
       <header className="app-header">
         <div className="app-title">
           <span className="title-main">分界象棋</span>
-          <span className="title-sub">跨界混合棋局 · 9×10</span>
+          <span className="title-sub">跨界中国象棋棋盘 · 9×10</span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <Link className="nav-link" to="/">← 混合棋局</Link>
+          <Link className="nav-link" to="/">← 中国象棋棋盘</Link>
+          <Link className="nav-link" to="/layouts">📋 布局管理</Link>
           <Link className="nav-link" to="/multi">🔗 联机对战</Link>
           <Link className="nav-link" to="/intl">国际象棋棋盘 →</Link>
         </div>
