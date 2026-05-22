@@ -17,10 +17,27 @@ function MultiFloatingBtn() {
   );
 }
 
+// Fixed QQ group badge
+function QQBadge() {
+  return (
+    <a
+      href="https://qm.qq.com/q/423205561"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="qq-badge"
+      title="加入QQ交流群 423205561"
+    >
+      <span className="qq-icon">QQ</span>
+      <span className="qq-text">交流群</span>
+    </a>
+  );
+}
+
 export default function App() {
   return (
     <HashRouter>
       <MultiFloatingBtn />
+      <QQBadge />
       <Routes>
         <Route path="/"            element={<HybridGame />} />
         <Route path="/intl"        element={<IntlGame />} />
