@@ -8,6 +8,9 @@ import {
 
 let boardCtx = null;
 let uiCtx    = null;
+let _flipped = false;
+export function setFlipped(val) { _flipped = val; }
+export function isFlipped()     { return _flipped; }
 
 export function initCanvas(canvasEl) {
   const ctx = canvasEl.getContext('2d');
@@ -202,7 +205,15 @@ function drawSinglePiece(ctx, x, y, piece) {
   ctx.font      = "bold 15px 'STKaiti','FangSong','Noto Serif SC',serif";
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(symbol, x, y);
+  if (_flipped) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(-1, -1);
+    ctx.fillText(symbol, 0, 0);
+    ctx.restore();
+  } else {
+    ctx.fillText(symbol, x, y);
+  }
 }
 
 function getPieceSymbol(type) {

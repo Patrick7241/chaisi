@@ -5,7 +5,7 @@ import { GameState, BoardState } from '../game/split-game.js';
 import { COLOR, CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/split-constants.js';
 import {
   initCanvas, drawBoard, drawPieces, drawHighlights,
-  clearCanvas, pixelToGrid
+  clearCanvas, pixelToGrid, setFlipped, isFlipped
 } from '../game/split-board.js';
 import { getBestMove } from '../game/ai.js';
 
@@ -52,6 +52,7 @@ export default function SplitGame() {
   const [aiThinking,     setAiThinking]     = useState(false);
   const [toastMsg,       setToastMsg]       = useState('');
   const [toastShow,      setToastShow]      = useState(false);
+  const [boardFlipped,   setBoardFlipped]   = useState(false);
   const [promotionMove,  setPromotionMove]  = useState(null);
 
   const bump = useCallback(() => setTick(t => t + 1), []);
@@ -114,9 +115,11 @@ export default function SplitGame() {
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const sx = CANVAS_WIDTH  / rect.width;
     const sy = CANVAS_HEIGHT / rect.height;
+    const rawX = (e.clientX - rect.left) * sx;
+    const rawY = (e.clientY - rect.top)  * sy;
     const { col, row } = pixelToGrid(
-      (e.clientX - rect.left) * sx,
-      (e.clientY - rect.top)  * sy
+      isFlipped() ? CANVAS_WIDTH  - rawX : rawX,
+      isFlipped() ? CANVAS_HEIGHT - rawY : rawY,
     );
 
     if (isSetupModeRef.current) {
@@ -158,9 +161,11 @@ export default function SplitGame() {
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const sx = CANVAS_WIDTH  / rect.width;
     const sy = CANVAS_HEIGHT / rect.height;
+    const rawX = (e.clientX - rect.left) * sx;
+    const rawY = (e.clientY - rect.top)  * sy;
     const { col, row } = pixelToGrid(
-      (e.clientX - rect.left) * sx,
-      (e.clientY - rect.top)  * sy
+      isFlipped() ? CANVAS_WIDTH  - rawX : rawX,
+      isFlipped() ? CANVAS_HEIGHT - rawY : rawY,
     );
     gsRef.current.board.removePiece(col, row);
     bump();
@@ -293,7 +298,7 @@ export default function SplitGame() {
           </div>
 
           <div className="board-container">
-            <div className="canvas-wrapper">
+            <div className={`canvas-wrapper${boardFlipped ? ' board-flipped' : ''}`}>
               <canvas ref={boardCanvasRef} id="board-canvas" />
               <canvas
                 ref={uiCanvasRef}
@@ -333,6 +338,9 @@ export default function SplitGame() {
             <button className="btn btn-secondary" onClick={toggleSetupMode}>
               {isSetupMode ? '退出摆子' : '摆子模式'}
             </button>
+            <button className="btn btn-secondary" onClick={() => {
+              const next = !boardFlipped; setBoardFlipped(next); setFlipped(next); bump();
+            }}>↕ 翻转</button>
             <button className="btn btn-primary" onClick={handleReset}>重新开始</button>
           </div>
 

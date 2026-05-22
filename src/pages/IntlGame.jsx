@@ -5,7 +5,7 @@ import { GameState, BoardState } from '../game/intl-game.js';
 import { COLOR, CANVAS_SIZE } from '../game/intl-constants.js';
 import {
   initCanvas, drawBoard, drawPieces, drawHighlights,
-  clearCanvas, pixelToSquare
+  clearCanvas, pixelToSquare, setFlipped, isFlipped
 } from '../game/intl-board.js';
 import { getBestMove } from '../game/ai.js';
 
@@ -67,6 +67,7 @@ export default function IntlGame() {
   const [aiThinking,     setAiThinking]     = useState(false);
   const [toastMsg,       setToastMsg]       = useState('');
   const [toastShow,      setToastShow]      = useState(false);
+  const [boardFlipped,   setBoardFlipped]   = useState(false);
   const [promotionMove,  setPromotionMove]  = useState(null);
 
   const bump = useCallback(() => setTick(t => t + 1), []);
@@ -135,9 +136,11 @@ export default function IntlGame() {
     if (promotionMove) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const s = CANVAS_SIZE / rect.width;
+    const rawX = (e.clientX - rect.left) * s;
+    const rawY = (e.clientY - rect.top)  * s;
     const { col, row } = pixelToSquare(
-      (e.clientX - rect.left) * s,
-      (e.clientY - rect.top)  * s
+      isFlipped() ? CANVAS_SIZE - rawX : rawX,
+      isFlipped() ? CANVAS_SIZE - rawY : rawY,
     );
 
     if (isSetupModeRef.current) {
@@ -179,9 +182,11 @@ export default function IntlGame() {
     if (!isSetupModeRef.current) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const s = CANVAS_SIZE / rect.width;
+    const rawX = (e.clientX - rect.left) * s;
+    const rawY = (e.clientY - rect.top)  * s;
     const { col, row } = pixelToSquare(
-      (e.clientX - rect.left) * s,
-      (e.clientY - rect.top)  * s
+      isFlipped() ? CANVAS_SIZE - rawX : rawX,
+      isFlipped() ? CANVAS_SIZE - rawY : rawY,
     );
     gsRef.current.board.removePiece(col, row);
     bump();
@@ -329,7 +334,7 @@ export default function IntlGame() {
           </div>
 
           <div className="board-container">
-            <div className="canvas-wrapper">
+            <div className={`canvas-wrapper${boardFlipped ? ' board-flipped' : ''}`}>
               <canvas ref={boardCanvasRef} id="intl-board-canvas" />
               <canvas
                 ref={uiCanvasRef}
@@ -370,6 +375,9 @@ export default function IntlGame() {
             <button className="btn btn-secondary" onClick={toggleSetupMode}>
               {isSetupMode ? '退出摆子' : '摆子模式'}
             </button>
+            <button className="btn btn-secondary" onClick={() => {
+              const next = !boardFlipped; setBoardFlipped(next); setFlipped(next); bump();
+            }}>↕ 翻转</button>
             <button className="btn btn-primary" onClick={handleReset}>重新开始</button>
           </div>
 

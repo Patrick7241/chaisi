@@ -195,6 +195,8 @@ export default function MultiGame() {
     const cfg = CFG[boardTypeRef.current];
     if (boardCanvasRef.current) cfg.B.initCanvas(boardCanvasRef.current);
     if (uiCanvasRef.current)    cfg.B.initCanvas(uiCanvasRef.current);
+    // Auto-flip: black pieces should appear at the bottom for the black player
+    cfg.B.setFlipped(myColorRef.current === 'black');
     canvasReadyRef.current = true;
     bump();
   }, [bump]);
@@ -333,9 +335,12 @@ export default function MultiGame() {
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const sx   = cfg.W / rect.width;
     const sy   = cfg.H / rect.height;
+    const isFlipped = myColorRef.current === 'black';
+    const rawX = (e.clientX - rect.left) * sx;
+    const rawY = (e.clientY - rect.top)  * sy;
     const { col, row } = cfg.toGrid(
-      (e.clientX - rect.left) * sx,
-      (e.clientY - rect.top)  * sy,
+      isFlipped ? cfg.W - rawX : rawX,
+      isFlipped ? cfg.H - rawY : rawY,
     );
 
     // Intercept promotion moves
@@ -446,7 +451,7 @@ export default function MultiGame() {
       <div className="app">
         <header className="app-header">
           <div className="app-title">
-            <span className="title-main">局域网对战</span>
+            <span className="title-main"> 联机对战</span>
             <span className="title-sub"> </span>
           </div>
           <Link className="nav-link" to="/">← 返回</Link>
@@ -507,7 +512,7 @@ export default function MultiGame() {
       <div className="app">
         <header className="app-header">
           <div className="app-title">
-            <span className="title-main">局域网对战</span>
+            <span className="title-main"> 联机对战</span>
           </div>
           <Link className="nav-link" to="#" onClick={handleReturnToLobby}>← 取消</Link>
         </header>
@@ -591,7 +596,7 @@ export default function MultiGame() {
     <div className="app">
       <header className="app-header">
         <div className="app-title">
-          <span className="title-main">局域网对战</span>
+          <span className="title-main"> 联机对战</span>
           <span className="title-sub">{activeCfg.label}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -615,7 +620,7 @@ export default function MultiGame() {
           </div>
 
           <div className="board-container">
-            <div className="canvas-wrapper" key={boardTypeRef.current}>
+            <div className={`canvas-wrapper${myColor === 'black' ? ' board-flipped' : ''}`} key={boardTypeRef.current}>
               <canvas ref={boardCanvasRef} id={activeCfg.boardId} />
               <canvas ref={uiCanvasRef} id={activeCfg.uiId}
                 onClick={handleCanvasClick}

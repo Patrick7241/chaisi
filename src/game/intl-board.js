@@ -7,6 +7,9 @@ import {
 
 let boardCtx = null;
 let uiCtx    = null;
+let _flipped = false;
+export function setFlipped(val) { _flipped = val; }
+export function isFlipped()     { return _flipped; }
 
 export function initCanvas(canvasEl) {
   const ctx = canvasEl.getContext('2d');
@@ -178,14 +181,27 @@ function drawSinglePiece(ctx, x, y, piece) {
   // Piece symbol
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
+
+  function drawText(txt, tx, ty) {
+    if (_flipped) {
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.scale(-1, -1);
+      ctx.fillText(txt, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillText(txt, tx, ty);
+    }
+  }
+
   if (isChinese) {
     ctx.fillStyle = isRed ? '#f5e030' : '#d0d0d0';
     ctx.font = `bold 15px 'STKaiti', 'FangSong', 'Noto Serif SC', serif`;
-    ctx.fillText(CHINESE_SYMBOLS[piece.type] || '?', x, y);
+    drawText(CHINESE_SYMBOLS[piece.type] || '?', x, y);
   } else {
     ctx.fillStyle = isRed ? '#f5e030' : '#d8d8d8';
     ctx.font = `bold 17px serif`;
-    ctx.fillText(INTL_SYMBOLS[piece.type] || '?', x, y + 1);
+    drawText(INTL_SYMBOLS[piece.type] || '?', x, y + 1);
   }
 }
 

@@ -959,3 +959,6 @@ body {
   80%  { opacity: 0.8; }
   100% { opacity: 0; transform: translateY(-120px) scale(1.4); }
 }
+
+/* ── Board flip ────────────────────────────────────────────────────────────── */
+.canvas-wrapper.board-flipped { transform: rotate(180deg); }
