@@ -217,7 +217,7 @@ export class GameState {
 
     const kingDest = move.castling ? move.castling.kingTo : move.to;
     const piece = this.board.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
-    if (move.promotion && piece) piece.type = move.promotion;
+    if (move.promotion && piece) { piece.type = move.promotion; piece.isPromoted = true; }
 
     this.moveHistory.push({ move, captured });
 

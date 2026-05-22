@@ -57,8 +57,8 @@ export function getCandidateMoves(piece, board) {
     case PIECE_TYPES.KING:     return inChinese ? kingAsGeneralMoves(piece, board) : kingMoves(piece, board);
     case PIECE_TYPES.QUEEN:    return queenMoves(piece, board);            // slides everywhere
     case PIECE_TYPES.ROOK_I:   return straightMoves(piece, board);
-    case PIECE_TYPES.BISHOP:   return inChinese ? bishopAsElephantMoves(piece, board) : bishopMoves(piece, board);
-    case PIECE_TYPES.KNIGHT:   return inChinese ? horseMoves(piece, board) : knightFreeMoves(piece, board);
+    case PIECE_TYPES.BISHOP:   return (inChinese && !piece.isPromoted) ? bishopAsElephantMoves(piece, board) : bishopMoves(piece, board);
+    case PIECE_TYPES.KNIGHT:   return (inChinese && !piece.isPromoted) ? horseMoves(piece, board) : knightFreeMoves(piece, board);
     case PIECE_TYPES.PAWN:     return inChinese ? pawnAsSoldierMoves(piece, board) : pawnMoves(piece, board);
     default: return [];
   }
