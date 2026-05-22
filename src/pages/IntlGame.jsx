@@ -258,7 +258,10 @@ export default function IntlGame() {
           <span className="title-main">象棋融合 8×8</span>
           <span className="title-sub">国际象棋棋盘 · 融合规则</span>
         </div>
-        <Link className="nav-link" to="/">← 返回 9×10 混合棋局</Link>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <Link className="nav-link" to="/">← 混合棋局</Link>
+          <Link className="nav-link" to="/split">分界棋盘 →</Link>
+        </div>
       </header>
 
       <div className="game-layout">
