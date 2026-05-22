@@ -202,8 +202,12 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell) {
   const ctx = uiCtx;
 
   if (lastMove) {
-    fillSquare(ctx, lastMove.from.col, lastMove.from.row, LAST_MOVE_COLOR);
-    fillSquare(ctx, lastMove.to.col,   lastMove.to.row,   LAST_MOVE_COLOR);
+    const lastMovePositions = lastMove.castling
+      ? [lastMove.from, lastMove.castling.kingTo, lastMove.castling.rFrom, lastMove.castling.rTo]
+      : [lastMove.from, lastMove.to];
+    lastMovePositions.forEach(pos => {
+      fillSquare(ctx, pos.col, pos.row, LAST_MOVE_COLOR);
+    });
   }
   if (checkCell) fillSquare(ctx, checkCell.col, checkCell.row, CHECK_COLOR);
   if (selected)  fillSquare(ctx, selected.col,  selected.row,  SELECT_COLOR);
@@ -213,7 +217,14 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell) {
       const { col, row } = move.to;
       const cx = BOARD_PADDING + col * CELL_SIZE + CELL_SIZE / 2;
       const cy = BOARD_PADDING + row * CELL_SIZE + CELL_SIZE / 2;
-      if (move.capture) {
+      if (move.castling) {
+        // Castling: ring around the rook square
+        ctx.strokeStyle = CAPTURE_COLOR;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, PIECE_RADIUS + 3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (move.capture) {
         // Capture target: ring around piece
         ctx.strokeStyle = CAPTURE_COLOR;
         ctx.lineWidth = 3;

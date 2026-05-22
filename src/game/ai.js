@@ -116,14 +116,15 @@ function allPieces(board, color) {
 
 function applyMove(board, move) {
   const b = board.clone();
-  if (b.at(move.to.col, move.to.row)) b.removePiece(move.to.col, move.to.row);
+  if (b.at(move.to.col, move.to.row) && !move.castling) b.removePiece(move.to.col, move.to.row);
   if (move.castling) {
     b.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                 move.castling.rTo.col,   move.castling.rTo.row);
   }
-  b.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+  const kingDest = move.castling ? move.castling.kingTo : move.to;
+  b.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
   if (move.promotion) {
-    const pp = b.at(move.to.col, move.to.row);
+    const pp = b.at(kingDest.col, kingDest.row);
     if (pp) pp.type = move.promotion;
   }
   return b;

@@ -91,20 +91,21 @@ export class GameState {
       // Castling: king must not be in check now, must not pass through attacked square
       if (move.castling) {
         if (this.isInCheck(piece.color, board)) return false;
-        const midCol = (piece.col + move.to.col) / 2;
+        const midCol = (piece.col + move.castling.kingTo.col) / 2;
         const midBoard = board.clone();
         midBoard.movePiece(piece.col, piece.row, midCol, piece.row);
         if (this.isInCheck(piece.color, midBoard)) return false;
       }
 
       const b = board.clone();
-      if (b.at(move.to.col, move.to.row)) b.removePiece(move.to.col, move.to.row);
+      if (b.at(move.to.col, move.to.row) && !move.castling) b.removePiece(move.to.col, move.to.row);
       if (move.castling) {
         b.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                     move.castling.rTo.col,   move.castling.rTo.row);
       }
-      b.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
-      if (move.promotion) { const pp = b.at(move.to.col, move.to.row); if (pp) pp.type = move.promotion; }
+      const kingDest = move.castling ? move.castling.kingTo : move.to;
+      b.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
+      if (move.promotion) { const pp = b.at(kingDest.col, kingDest.row); if (pp) pp.type = move.promotion; }
       return !this.isFacingRulers(b) && !this.isInCheck(piece.color, b);
     });
   }
@@ -142,29 +143,31 @@ export class GameState {
   // ── interaction ──────────────────────────────────────────────────────────────
   selectPiece(col, row) {
     const piece = this.board.at(col, row);
+
+    if (this.selected && piece !== this.selected) {
+      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
+      if (move) {
+        this._execute(move);
+        return;
+      }
+    }
+
     if (piece && piece.color === this.currentTurn) {
       this.selected   = piece;
       this.validMoves = this.getValidMoves(piece);
     } else if (this.selected) {
-      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
-      if (move) {
-        this._execute(move);
-      } else if (piece && piece.color === this.currentTurn) {
-        this.selected   = piece;
-        this.validMoves = this.getValidMoves(piece);
-      } else {
-        this.selected = null; this.validMoves = [];
-      }
+      this.selected = null; this.validMoves = [];
     }
   }
 
   _execute(move) {
-    if (this.board.at(move.to.col, move.to.row)) this.board.removePiece(move.to.col, move.to.row);
+    if (this.board.at(move.to.col, move.to.row) && !move.castling) this.board.removePiece(move.to.col, move.to.row);
     if (move.castling) {
       this.board.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                            move.castling.rTo.col,   move.castling.rTo.row);
     }
-    const piece = this.board.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+    const kingDest = move.castling ? move.castling.kingTo : move.to;
+    const piece = this.board.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
     if (move.promotion && piece) piece.type = move.promotion;
     this.history.push(move);
     this.currentTurn = this.currentTurn === COLOR.RED ? COLOR.BLACK : COLOR.RED;

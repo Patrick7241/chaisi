@@ -64,6 +64,7 @@ export default function IntlGame() {
   const [aiThinking,     setAiThinking]     = useState(false);
   const [toastMsg,       setToastMsg]       = useState('');
   const [toastShow,      setToastShow]      = useState(false);
+  const [promotionMove,  setPromotionMove]  = useState(null);
 
   const bump = useCallback(() => setTick(t => t + 1), []);
 
@@ -128,6 +129,7 @@ export default function IntlGame() {
 
   // ── Canvas click ──────────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
+    if (promotionMove) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
     const s = CANVAS_SIZE / rect.width;
     const { col, row } = pixelToSquare(
@@ -152,11 +154,22 @@ export default function IntlGame() {
       const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                        (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
       if (isAITurn) return;
+
+      // Intercept promotion moves before executing
+      if (gs.selected) {
+        const move = gs.validMoves.find(m => m.to.col === col && m.to.row === row);
+        if (move?.needsChoice) {
+          setPromotionMove(move);
+          bump();
+          return;
+        }
+      }
+
       gs.selectPiece(col, row);
       bump();
       scheduleAI();
     }
-  }, [bump, scheduleAI]);
+  }, [bump, scheduleAI, promotionMove]);
 
   const handleContextMenu = useCallback((e) => {
     e.preventDefault();
@@ -170,6 +183,15 @@ export default function IntlGame() {
     gsRef.current.board.removePiece(col, row);
     bump();
   }, [bump]);
+
+  const handlePromotion = useCallback((type) => {
+    if (!promotionMove) return;
+    const move = { ...promotionMove, promotion: type };
+    gsRef.current._execute(move);
+    setPromotionMove(null);
+    bump();
+    scheduleAI();
+  }, [promotionMove, bump, scheduleAI]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   function handleReset() {
@@ -293,6 +315,18 @@ export default function IntlGame() {
                 onClick={handleCanvasClick}
                 onContextMenu={handleContextMenu}
               />
+              {promotionMove && (
+                <div className="promotion-overlay">
+                  <div className="promotion-dialog">
+                    <div className="promo-title">选择升变棋子</div>
+                    <div className="promo-pieces">
+                      {[{t:'queen',s:'♕'},{t:'rook',s:'♖'},{t:'bishop',s:'♗'},{t:'knight',s:'♘'}].map(({t,s})=>(
+                        <button key={t} className={`promo-piece ${gsRef.current.currentTurn}`} onClick={()=>handlePromotion(t)}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

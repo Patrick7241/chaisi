@@ -119,7 +119,7 @@ export class GameState {
     for (const move of candidates) {
       if (move.castling) {
         if (this.isInCheck(piece.color, board)) continue;
-        const midCol = (piece.col + move.to.col) / 2;
+        const midCol = (piece.col + move.castling.kingTo.col) / 2;
         const midBoard = board.clone();
         midBoard.movePiece(piece.col, piece.row, midCol, piece.row);
         if (this.isInCheck(piece.color, midBoard)) continue;
@@ -127,14 +127,15 @@ export class GameState {
 
       const testBoard = board.clone();
       const target = testBoard.at(move.to.col, move.to.row);
-      if (target) testBoard.removePiece(move.to.col, move.to.row);
+      if (target && !move.castling) testBoard.removePiece(move.to.col, move.to.row);
       if (move.castling) {
         testBoard.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                             move.castling.rTo.col,   move.castling.rTo.row);
       }
-      testBoard.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+      const kingDest = move.castling ? move.castling.kingTo : move.to;
+      testBoard.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
       if (move.promotion) {
-        const pp = testBoard.at(move.to.col, move.to.row);
+        const pp = testBoard.at(kingDest.col, kingDest.row);
         if (pp) pp.type = move.promotion;
       }
       if (!this.isFacingRulers(testBoard) && !this.isInCheck(piece.color, testBoard)) {
@@ -185,20 +186,20 @@ export class GameState {
   selectPiece(col, row) {
     const piece = this.board.at(col, row);
 
+    if (this.selectedPiece && piece !== this.selectedPiece) {
+      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
+      if (move) {
+        this.executeMove(move);
+        return;
+      }
+    }
+
     if (piece && piece.color === this.currentTurn) {
       this.selectedPiece = piece;
       this.validMoves = this.getValidMoves(piece);
     } else if (this.selectedPiece) {
-      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
-      if (move) {
-        this.executeMove(move);
-      } else if (piece && piece.color === this.currentTurn) {
-        this.selectedPiece = piece;
-        this.validMoves = this.getValidMoves(piece);
-      } else {
-        this.selectedPiece = null;
-        this.validMoves = [];
-      }
+      this.selectedPiece = null;
+      this.validMoves = [];
     } else {
       this.selectedPiece = null;
       this.validMoves = [];
@@ -207,21 +208,22 @@ export class GameState {
 
   executeMove(move) {
     const captured = this.board.at(move.to.col, move.to.row);
-    if (captured) this.board.removePiece(move.to.col, move.to.row);
+    if (captured && !move.castling) this.board.removePiece(move.to.col, move.to.row);
 
     if (move.castling) {
       this.board.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                            move.castling.rTo.col,   move.castling.rTo.row);
     }
 
-    const piece = this.board.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+    const kingDest = move.castling ? move.castling.kingTo : move.to;
+    const piece = this.board.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
     if (move.promotion && piece) piece.type = move.promotion;
 
     this.moveHistory.push({ move, captured });
 
     // Undo if facing-rulers rule violated
     if (this.isFacingRulers(this.board)) {
-      if (piece) this.board.movePiece(move.to.col, move.to.row, move.from.col, move.from.row);
+      if (piece) this.board.movePiece(kingDest.col, kingDest.row, move.from.col, move.from.row);
       if (captured) this.board.addPiece(captured);
       this.moveHistory.pop();
       this.selectedPiece = null;

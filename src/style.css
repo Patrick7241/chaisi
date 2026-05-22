@@ -559,7 +559,56 @@ body {
   .rules li { font-size: 0.8rem; }
 }
 
-/* ── Small phone (≤ 420px) ───────────────────────────────────────────────── */
+/* ── Promotion dialog ─────────────────────────────────────────────────────── */
+.promotion-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  border-radius: 3px;
+}
+.promotion-dialog {
+  background: #252220;
+  border: 1px solid #4a4845;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+}
+.promo-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c8c6c3;
+  letter-spacing: 0.3px;
+}
+.promo-pieces {
+  display: flex;
+  gap: 10px;
+}
+.promo-piece {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18);
+  font-size: 26px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.promo-piece.red   { background: radial-gradient(circle at 35% 35%, #e84848, #8a1010); color: #f5e030; }
+.promo-piece.black { background: radial-gradient(circle at 35% 35%, #505050, #0c0c0c); color: #d0d0d0; }
+.promo-piece:hover { transform: scale(1.12); border-color: #f0a030; }
+
+
 @media (max-width: 420px) {
   .app { padding: 8px 8px 20px; }
 

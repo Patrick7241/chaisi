@@ -356,9 +356,9 @@ function getKingMoves(piece, boardState) {
         !boardState.at(5, piece.row) && !boardState.at(6, piece.row)) {
       moves.push({
         from: { col: piece.col, row: piece.row },
-        to:   { col: 6, row: piece.row },
+        to:   { col: 7, row: piece.row },
         capture: null, promotion: null,
-        castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } }
+        castling: { kingTo: { col: 6, row: piece.row }, rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } }
       });
     }
     // Queenside (col 0)
@@ -367,9 +367,9 @@ function getKingMoves(piece, boardState) {
         !boardState.at(1, piece.row) && !boardState.at(2, piece.row) && !boardState.at(3, piece.row)) {
       moves.push({
         from: { col: piece.col, row: piece.row },
-        to:   { col: 2, row: piece.row },
+        to:   { col: 0, row: piece.row },
         capture: null, promotion: null,
-        castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } }
+        castling: { kingTo: { col: 2, row: piece.row }, rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } }
       });
     }
   }
@@ -495,7 +495,8 @@ function getPawnMoves(piece, boardState) {
       from: { col: piece.col, row: piece.row },
       to:   { col: piece.col, row: oneStep },
       capture: null,
-      promotion: oneStep === promotionRow ? PIECE_TYPES.QUEEN : null
+      promotion: oneStep === promotionRow ? PIECE_TYPES.QUEEN : null,
+      ...(oneStep === promotionRow ? { needsChoice: true } : {})
     };
     moves.push(moveObj);
 
@@ -523,7 +524,8 @@ function getPawnMoves(piece, boardState) {
         from: { col: piece.col, row: piece.row },
         to:   { col: newCol, row: newRow },
         capture: target,
-        promotion: newRow === promotionRow ? PIECE_TYPES.QUEEN : null
+        promotion: newRow === promotionRow ? PIECE_TYPES.QUEEN : null,
+        ...(newRow === promotionRow ? { needsChoice: true } : {})
       });
     }
   });

@@ -261,7 +261,10 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell, cells)
 
   // Last-move highlight (full cell)
   if (lastMove) {
-    [lastMove.from, lastMove.to].forEach(pos => {
+    const lastMovePositions = lastMove.castling
+      ? [lastMove.from, lastMove.castling.kingTo, lastMove.castling.rFrom, lastMove.castling.rTo]
+      : [lastMove.from, lastMove.to];
+    lastMovePositions.forEach(pos => {
       const { x, y } = gridToPixel(pos.col, pos.row);
       ctx.fillStyle = LAST_MOVE_COLOR;
       ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
@@ -286,9 +289,16 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell, cells)
   if (validMoves?.length > 0) {
     validMoves.forEach(move => {
       const { x, y } = gridToPixel(move.to.col, move.to.row);
-      const hasTarget = cells && cells[move.to.row] && cells[move.to.row][move.to.col];
+      const hasTarget = !move.castling && cells && cells[move.to.row] && cells[move.to.row][move.to.col];
 
-      if (hasTarget) {
+      if (move.castling) {
+        // Castling: highlight the rook square with a ring (not a capture ring color)
+        ctx.strokeStyle = HIGHLIGHT_COLOR;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, PIECE_RADIUS + 3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (hasTarget) {
         // Capture target: translucent ring around the piece
         ctx.strokeStyle = HIGHLIGHT_COLOR;
         ctx.lineWidth = 3;

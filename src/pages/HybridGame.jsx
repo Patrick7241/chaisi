@@ -58,6 +58,7 @@ export default function HybridGame() {
   const [aiThinking,    setAiThinking]    = useState(false);
   const [toastMsg,      setToastMsg]      = useState('');
   const [toastShow,     setToastShow]     = useState(false);
+  const [promotionMove, setPromotionMove] = useState(null);
 
   const bump = useCallback(() => setTick(t => t + 1), []);
 
@@ -119,6 +120,7 @@ export default function HybridGame() {
 
   // ── Canvas click ─────────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
+    if (promotionMove) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
     // Compensate for responsive CSS scaling: CSS px → logical game px
     const sx = CANVAS_WIDTH  / rect.width;
@@ -144,11 +146,22 @@ export default function HybridGame() {
       const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                        (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
       if (isAITurn) return;
+
+      // Intercept promotion moves before executing
+      if (gs.selectedPiece) {
+        const move = gs.validMoves.find(m => m.to.col === col && m.to.row === row);
+        if (move?.needsChoice) {
+          setPromotionMove(move);
+          bump();
+          return;
+        }
+      }
+
       gs.selectPiece(col, row);
       bump();
       scheduleAI();
     }
-  }, [bump, scheduleAI]);
+  }, [bump, scheduleAI, promotionMove]);
 
   const handleContextMenu = useCallback((e) => {
     e.preventDefault();
@@ -163,6 +176,15 @@ export default function HybridGame() {
     gsRef.current.board.removePiece(col, row);
     bump();
   }, [bump]);
+
+  const handlePromotion = useCallback((type) => {
+    if (!promotionMove) return;
+    const move = { ...promotionMove, promotion: type };
+    gsRef.current.executeMove(move);
+    setPromotionMove(null);
+    bump();
+    scheduleAI();
+  }, [promotionMove, bump, scheduleAI]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
   function handleReset() {
@@ -277,6 +299,18 @@ export default function HybridGame() {
                 onClick={handleCanvasClick}
                 onContextMenu={handleContextMenu}
               />
+              {promotionMove && (
+                <div className="promotion-overlay">
+                  <div className="promotion-dialog">
+                    <div className="promo-title">选择升变棋子</div>
+                    <div className="promo-pieces">
+                      {[{t:'queen',s:'♕'},{t:'rook',s:'♖'},{t:'bishop',s:'♗'},{t:'knight',s:'♘'}].map(({t,s})=>(
+                        <button key={t} className={`promo-piece ${gsRef.current.currentTurn}`} onClick={()=>handlePromotion(t)}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

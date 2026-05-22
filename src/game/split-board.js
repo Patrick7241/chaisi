@@ -215,7 +215,10 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell, cells)
   const ctx = uiCtx;
 
   if (lastMove) {
-    [lastMove.from, lastMove.to].forEach(pos => {
+    const lastMovePositions = lastMove.castling
+      ? [lastMove.from, lastMove.castling.kingTo, lastMove.castling.rFrom, lastMove.castling.rTo]
+      : [lastMove.from, lastMove.to];
+    lastMovePositions.forEach(pos => {
       const { x, y } = gridToPixel(pos.col, pos.row);
       ctx.fillStyle = LAST_MOVE_COLOR;
       ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
@@ -237,8 +240,8 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell, cells)
   if (validMoves?.length > 0) {
     validMoves.forEach(move => {
       const { x, y } = gridToPixel(move.to.col, move.to.row);
-      const hasTarget = cells && cells[move.to.row]?.[move.to.col];
-      if (hasTarget) {
+      const hasTarget = !move.castling && cells && cells[move.to.row]?.[move.to.col];
+      if (move.castling || hasTarget) {
         ctx.strokeStyle = HIGHLIGHT_COLOR;
         ctx.lineWidth   = 3;
         ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 3, 0, Math.PI * 2); ctx.stroke();

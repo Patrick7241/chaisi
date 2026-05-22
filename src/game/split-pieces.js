@@ -199,7 +199,9 @@ function soldierAsPawnMoves(piece, board) {
     const t = board.at(piece.col, fr);
     if (!t || t.color !== piece.color) {
       const prom = fr === promRow ? PIECE_TYPES.QUEEN : null;
-      moves.push(mv(piece, piece.col, fr, t, prom));
+      const move = mv(piece, piece.col, fr, t, prom);
+      if (prom) move.needsChoice = true;
+      moves.push(move);
     }
     // Double step on first move
     if (!piece.hasMoved && !t) {
@@ -217,7 +219,9 @@ function soldierAsPawnMoves(piece, board) {
     const t = board.at(c, r);
     if (t && t.color !== piece.color) {
       const prom = r === promRow ? PIECE_TYPES.QUEEN : null;
-      moves.push(mv(piece, c, r, t, prom));
+      const move = mv(piece, c, r, t, prom);
+      if (prom) move.needsChoice = true;
+      moves.push(move);
     }
   }
 
@@ -243,17 +247,17 @@ function kingMoves(piece, board) {
     const kr = board.at(7, piece.row);
     if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
         !board.at(5, piece.row) && !board.at(6, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 6, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 7, row: piece.row },
                    capture: null, promotion: null,
-                   castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
+                   castling: { kingTo: { col: 6, row: piece.row }, rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
     }
     // Queenside (col 0)
     const qr = board.at(0, piece.row);
     if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
         !board.at(1, piece.row) && !board.at(2, piece.row) && !board.at(3, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 2, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 0, row: piece.row },
                    capture: null, promotion: null,
-                   castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
+                   castling: { kingTo: { col: 2, row: piece.row }, rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
     }
   }
 
@@ -339,7 +343,9 @@ function pawnMoves(piece, board) {
     const t = board.at(piece.col, fr);
     if (!t) {
       const prom = fr === promRow ? PIECE_TYPES.QUEEN : null;
-      moves.push(mv(piece, piece.col, fr, null, prom));
+      const move = mv(piece, piece.col, fr, null, prom);
+      if (prom) move.needsChoice = true;
+      moves.push(move);
       // Double step on first move
       if (!piece.hasMoved) {
         const dr2 = piece.row + dir * 2;
@@ -355,7 +361,9 @@ function pawnMoves(piece, board) {
       const t2 = board.at(c, fr);
       if (t2 && t2.color !== piece.color) {
         const prom = fr === promRow ? PIECE_TYPES.QUEEN : null;
-        moves.push(mv(piece, c, fr, t2, prom));
+        const move = mv(piece, c, fr, t2, prom);
+        if (prom) move.needsChoice = true;
+        moves.push(move);
       }
     }
   }
@@ -374,7 +382,9 @@ function pawnAsSoldierMoves(piece, board) {
     const t = board.at(piece.col, fr);
     if (!t || t.color !== piece.color) {
       const prom = fr === 0 && piece.color === COLOR.RED ? PIECE_TYPES.QUEEN : null;
-      moves.push(mv(piece, piece.col, fr, t, prom));
+      const move = mv(piece, piece.col, fr, t, prom);
+      if (prom) move.needsChoice = true;
+      moves.push(move);
     }
   }
 

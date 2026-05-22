@@ -11,9 +11,11 @@ function inPalace(col, row, p) {
   return col >= p.colMin && col <= p.colMax && row >= p.rowMin && row <= p.rowMax;
 }
 
-function mv(piece, col, row, target, promotion = null) {
-  return { from: { col: piece.col, row: piece.row }, to: { col, row },
+function mv(piece, col, row, target, promotion = null, needsChoice = undefined) {
+  const m = { from: { col: piece.col, row: piece.row }, to: { col, row },
            capture: target || null, promotion };
+  if (needsChoice) m.needsChoice = true;
+  return m;
 }
 
 function palace(piece) {
@@ -53,17 +55,17 @@ function getKingMoves(piece, board) {
     const kr = board.at(7, piece.row);
     if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
         !board.at(5, piece.row) && !board.at(6, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 6, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 7, row: piece.row },
                    capture: null, promotion: null,
-                   castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
+                   castling: { kingTo: { col: 6, row: piece.row }, rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
     }
     // Queenside (col 0)
     const qr = board.at(0, piece.row);
     if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
         !board.at(1, piece.row) && !board.at(2, piece.row) && !board.at(3, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 2, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 0, row: piece.row },
                    capture: null, promotion: null,
-                   castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
+                   castling: { kingTo: { col: 2, row: piece.row }, rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
     }
   }
 
@@ -102,7 +104,8 @@ function getPawnMoves(piece, board) {
 
   const oneRow = piece.row + dir;
   if (ok(piece.col, oneRow) && !board.at(piece.col, oneRow)) {
-    moves.push(mv(piece, piece.col, oneRow, null, oneRow === promoRow ? PIECE_TYPES.QUEEN : null));
+    const isPromo = oneRow === promoRow;
+    moves.push(mv(piece, piece.col, oneRow, null, isPromo ? PIECE_TYPES.QUEEN : null, isPromo ? true : undefined));
     if (piece.row === startRow) {
       const twoRow = piece.row + dir * 2;
       if (ok(piece.col, twoRow) && !board.at(piece.col, twoRow))
@@ -113,8 +116,10 @@ function getPawnMoves(piece, board) {
     const col = piece.col + dc, row = piece.row + dir;
     if (!ok(col, row)) return;
     const t = board.at(col, row);
-    if (t && t.color !== piece.color)
-      moves.push(mv(piece, col, row, t, row === promoRow ? PIECE_TYPES.QUEEN : null));
+    if (t && t.color !== piece.color) {
+      const isPromo = row === promoRow;
+      moves.push(mv(piece, col, row, t, isPromo ? PIECE_TYPES.QUEEN : null, isPromo ? true : undefined));
+    }
   });
   return moves;
 }

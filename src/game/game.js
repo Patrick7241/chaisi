@@ -129,7 +129,7 @@ export class GameState {
       // Castling: king must not currently be in check, must not pass through attacked square
       if (move.castling) {
         if (this.isInCheck(piece.color, board)) continue;
-        const midCol = (piece.col + move.to.col) / 2;
+        const midCol = (piece.col + move.castling.kingTo.col) / 2;
         const midBoard = board.clone();
         midBoard.movePiece(piece.col, piece.row, midCol, piece.row);
         if (this.isInCheck(piece.color, midBoard)) continue;
@@ -137,15 +137,16 @@ export class GameState {
 
       const testBoard = board.clone();
       const target = testBoard.at(move.to.col, move.to.row);
-      if (target) testBoard.removePiece(move.to.col, move.to.row);
+      if (target && !move.castling) testBoard.removePiece(move.to.col, move.to.row);
       // Move rook first if castling, so final board state is correct
       if (move.castling) {
         testBoard.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
                             move.castling.rTo.col,   move.castling.rTo.row);
       }
-      testBoard.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+      const kingDest = move.castling ? move.castling.kingTo : move.to;
+      testBoard.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
       if (move.promotion) {
-        const movedPiece = testBoard.at(move.to.col, move.to.row);
+        const movedPiece = testBoard.at(kingDest.col, kingDest.row);
         if (movedPiece) movedPiece.type = move.promotion;
       }
 
@@ -220,27 +221,25 @@ export class GameState {
   selectPiece(col, row) {
     const piece = this.board.at(col, row);
 
+    if (this.selectedPiece && piece !== this.selectedPiece) {
+      // Try to move to this position (check validMoves first, handles castling onto rook)
+      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
+      if (move) {
+        this.executeMove(move);
+        return;
+      }
+    }
+
     if (piece && piece.color === this.currentTurn) {
       // Select this piece
       this.selectedPiece = piece;
       this.validMoves = this.getValidMoves(piece);
-    } else if (this.selectedPiece && piece !== this.selectedPiece) {
-      // Try to move to this position
-      const move = this.validMoves.find(m => m.to.col === col && m.to.row === row);
-      if (move) {
-        this.executeMove(move);
-      } else {
-        // Deselect or select another friendly piece
-        if (piece && piece.color === this.currentTurn) {
-          this.selectedPiece = piece;
-          this.validMoves = this.getValidMoves(piece);
-        } else {
-          this.selectedPiece = null;
-          this.validMoves = [];
-        }
-      }
-    } else {
+    } else if (this.selectedPiece) {
       // Deselect
+      this.selectedPiece = null;
+      this.validMoves = [];
+    } else {
+      // Nothing selected, nothing to do
       this.selectedPiece = null;
       this.validMoves = [];
     }
@@ -249,7 +248,7 @@ export class GameState {
   executeMove(move) {
     // Apply move
     const capturedPiece = this.board.at(move.to.col, move.to.row);
-    if (capturedPiece) {
+    if (capturedPiece && !move.castling) {
       this.board.removePiece(move.to.col, move.to.row);
     }
 
@@ -259,7 +258,8 @@ export class GameState {
                            move.castling.rTo.col,   move.castling.rTo.row);
     }
 
-    const piece = this.board.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
+    const kingDest = move.castling ? move.castling.kingTo : move.to;
+    const piece = this.board.movePiece(move.from.col, move.from.row, kingDest.col, kingDest.row);
 
     // Handle promotion
     if (move.promotion && piece) {
@@ -276,7 +276,7 @@ export class GameState {
     if (this.isFacingGenerals(this.board)) {
       // Undo the move
       if (piece) {
-        this.board.movePiece(move.to.col, move.to.row, move.from.col, move.from.row);
+        this.board.movePiece(kingDest.col, kingDest.row, move.from.col, move.from.row);
       }
       if (capturedPiece) {
         this.board.addPiece(capturedPiece);
