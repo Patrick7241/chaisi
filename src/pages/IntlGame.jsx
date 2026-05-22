@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useDialog } from '../components/Dialog.jsx';
 import { GameState, BoardState } from '../game/intl-game.js';
 import { COLOR, CANVAS_SIZE } from '../game/intl-constants.js';
 import {
@@ -36,6 +37,8 @@ export default function IntlGame() {
   const uiCanvasRef    = useRef(null);
   const canvasReady    = useRef(false);
   const aiTimerRef     = useRef(null);
+
+  const { confirm, alert, prompt, select } = useDialog();
 
   const gsRef = useRef(null);
   if (!gsRef.current) gsRef.current = new GameState();
@@ -235,24 +238,42 @@ export default function IntlGame() {
     setSetupPieceType(null);
   }
 
-  function saveLayout() {
-    const layout = gsRef.current.board.pieces.map(({ type, color, col, row }) => ({ type, color, col, row }));
+  async function saveLayout() {
+    const name = await prompt('为这个布局命名', {
+      title: '保存布局',
+      placeholder: '输入布局名称...',
+      confirmText: '保存',
+    });
+    if (!name) return;
+    const pieces = gsRef.current.board.pieces.map(({ type, color, col, row }) => ({ type, color, col, row }));
     try {
-      localStorage.setItem('intl_hybrid_layout', JSON.stringify(layout));
-      showToast('布局已保存！');
-    } catch (e) { alert('保存失败'); }
+      const storageKey = 'chess_layouts_intl';
+      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      existing.push({ name, pieces, createdAt: Date.now() });
+      localStorage.setItem(storageKey, JSON.stringify(existing));
+      showToast(`布局"${name}"已保存！`);
+    } catch (e) { await alert('保存失败：' + e.message, { title: '错误' }); }
   }
 
-  function loadLayout() {
+  async function loadLayout() {
     try {
-      const raw = localStorage.getItem('intl_hybrid_layout');
-      if (!raw) { alert('没有保存的布局'); return; }
-      const pieces = JSON.parse(raw);
+      const storageKey = 'chess_layouts_intl';
+      const layouts = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const oldRaw = localStorage.getItem('intl_hybrid_layout');
+      if (oldRaw) layouts.unshift({ name: '已保存布局（旧）', pieces: JSON.parse(oldRaw), createdAt: 0 });
+
+      if (layouts.length === 0) {
+        await alert('没有保存的布局', { title: '提示' });
+        return;
+      }
+      const idx = await select('选择要加载的布局', layouts.map(l => l.name), { title: '加载布局' });
+      if (idx === false) return;
+      const chosen = layouts[idx];
       gsRef.current.board = new BoardState();
-      pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
+      chosen.pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
       bump();
-      showToast('布局已加载！');
-    } catch (e) { alert('加载失败'); }
+      showToast(`布局"${chosen.name}"已加载！`);
+    } catch (e) { await alert('加载失败：' + e.message, { title: '错误' }); }
   }
 
   // ── Derived display values ────────────────────────────────────────────────
@@ -444,16 +465,16 @@ export default function IntlGame() {
                   >🧹 橡皮擦</button>
                   <button
                     className="tool-btn"
-                    onClick={() => {
-                      if (!confirm('清空棋盘？')) return;
+                    onClick={async () => {
+                      if (!await confirm('清空棋盘？', { title: '清空棋盘', confirmText: '确定清空', cancelText: '取消' })) return;
                       gsRef.current.board = new BoardState();
                       bump();
                     }}
                   >清空棋盘</button>
                   <button
                     className="tool-btn"
-                    onClick={() => {
-                      if (!confirm('恢复默认融合布局？')) return;
+                    onClick={async () => {
+                      if (!await confirm('恢复默认融合布局？', { title: '恢复默认', confirmText: '确定恢复', cancelText: '取消' })) return;
                       gsRef.current.reset();
                       bump();
                     }}

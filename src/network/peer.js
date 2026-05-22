@@ -87,4 +87,5 @@ export const MSG = {
   UNDO_ACCEPT:  'undo_accept',
   UNDO_REJECT:  'undo_reject',
   SURRENDER:    'surrender',
+  EMOJI:        'emoji',        // { emoji }
 };

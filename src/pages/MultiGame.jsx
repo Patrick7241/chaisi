@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useDialog } from '../components/Dialog.jsx';
 import { GameConnection, MSG } from '../network/peer.js';
 
 // ── Board drawing modules ─────────────────────────────────────────────────────
@@ -53,6 +54,58 @@ function replayMoves(boardType, pieces, moves) {
   return gs;
 }
 
+// ── Load all saved configs from localStorage ──────────────────────────────────
+function loadSavedConfigs() {
+  const configs = [];
+
+  // Default configs
+  configs.push({ id: 'hybrid-default',  boardType: 'hybrid', pieces: null, label: '混合棋局 9×10', isCustom: false, boardLabel: '混合棋局' });
+  configs.push({ id: 'intl-default',    boardType: 'intl',   pieces: null, label: '国际棋局 8×8',  isCustom: false, boardLabel: '国际棋局' });
+  configs.push({ id: 'split-default',   boardType: 'split',  pieces: null, label: '分界棋盘 9×10', isCustom: false, boardLabel: '分界棋盘' });
+
+  // Custom layouts
+  const types = [
+    { boardType: 'hybrid', newKey: 'chess_layouts_hybrid', oldKey: 'chess_custom_layout', boardLabel: '混合棋局' },
+    { boardType: 'intl',   newKey: 'chess_layouts_intl',   oldKey: 'intl_hybrid_layout',  boardLabel: '国际棋局' },
+    { boardType: 'split',  newKey: 'chess_layouts_split',  oldKey: 'chess_split_layout',  boardLabel: '分界棋盘' },
+  ];
+
+  for (const { boardType, newKey, oldKey, boardLabel } of types) {
+    // Legacy single layout
+    const oldRaw = localStorage.getItem(oldKey);
+    if (oldRaw) {
+      try {
+        configs.push({
+          id: `${boardType}-legacy`,
+          boardType,
+          pieces: JSON.parse(oldRaw),
+          label: `自定义布局（旧）`,
+          isCustom: true,
+          boardLabel,
+        });
+      } catch (_) { /* ignore */ }
+    }
+    // New multi-layout array
+    try {
+      const arr = JSON.parse(localStorage.getItem(newKey) || '[]');
+      arr.forEach((layout, i) => {
+        configs.push({
+          id: `${boardType}-${i}-${layout.createdAt}`,
+          boardType,
+          pieces: layout.pieces,
+          label: layout.name || `布局 ${i + 1}`,
+          isCustom: true,
+          boardLabel,
+        });
+      });
+    } catch (_) { /* ignore */ }
+  }
+
+  return configs;
+}
+
+const EMOJI_LIST = ['😂', '👏', '😤', '🤔', '💀', '🎉', '🔥', '😮', '😢', '✊', '🤝', '🙏'];
+
 export default function MultiGame() {
   // ── Connection / phase state ──────────────────────────────────────────────
   const [phase, setPhase]         = useState('lobby'); // lobby|waiting|playing|over|error
@@ -62,7 +115,11 @@ export default function MultiGame() {
   const [connStatus, setConnStatus] = useState(''); // status text
 
   // ── Game config ───────────────────────────────────────────────────────────
-  const [boardType, setBoardType] = useState('hybrid');
+  const [savedConfigs, setSavedConfigs] = useState(() => loadSavedConfigs());
+  const [selectedConfig, setSelectedConfig] = useState(() => {
+    const c = loadSavedConfigs();
+    return c[0] ?? { id: 'hybrid-default', boardType: 'hybrid', pieces: null, label: '混合棋局 9×10', boardLabel: '混合棋局' };
+  });
   const [myColor,   setMyColor]   = useState('red');
 
   // ── In-game UI state ──────────────────────────────────────────────────────
@@ -72,6 +129,7 @@ export default function MultiGame() {
   const [gameResult,    setGameResult]    = useState(null);   // {winner, reason}
   const [toastMsg,      setToastMsg]      = useState('');
   const [toastShow,     setToastShow]     = useState(false);
+  const [emojiFlies,    setEmojiFlies]    = useState([]);
 
   // ── Refs (stable across renders) ─────────────────────────────────────────
   const gcRef           = useRef(null);
@@ -85,6 +143,8 @@ export default function MultiGame() {
   const initialPiecesRef = useRef(null);  // null = default layout
   const undoStateRef    = useRef('idle');
   const promotionRef    = useRef(null);
+
+  const { confirm } = useDialog();
 
   const bump = useCallback(() => setTick(t => t + 1), []);
 
@@ -129,7 +189,6 @@ export default function MultiGame() {
     moveLogRef.current = [];
     gsRef.current = new cfg.GS(pieces ?? null);
     setMyColor(myColorRef.current);
-    setBoardType(bType);
   }, []);
 
   const initCanvases = useCallback(() => {
@@ -139,6 +198,18 @@ export default function MultiGame() {
     canvasReadyRef.current = true;
     bump();
   }, [bump]);
+
+  // ── Emoji reactions ───────────────────────────────────────────────────────
+  function spawnEmojiFly(emoji, side) {
+    const id = Date.now() + Math.random();
+    setEmojiFlies(f => [...f, { id, emoji, side }]);
+    setTimeout(() => setEmojiFlies(f => f.filter(e => e.id !== id)), 2800);
+  }
+
+  function sendEmoji(emoji) {
+    spawnEmojiFly(emoji, 'mine');
+    gcRef.current?.send({ type: MSG.EMOJI, emoji });
+  }
 
   // ── Handle incoming network messages ─────────────────────────────────────
   const handleData = useCallback((data) => {
@@ -186,8 +257,12 @@ export default function MultiGame() {
         setPhase('over');
         break;
       }
+      case MSG.EMOJI: {
+        spawnEmojiFly(data.emoji, 'opp');
+        break;
+      }
     }
-  }, [bump, initCanvases, initGame]);
+  }, [bump, initGame]); // eslint-disable-line
 
   // ── Setup connection handlers ─────────────────────────────────────────────
   const setupHandlers = useCallback((gc, isHost) => {
@@ -211,21 +286,24 @@ export default function MultiGame() {
       setErrorMsg(err.message || String(err));
       setPhase('error');
     });
-  }, [handleData, initCanvases, phase]);
+  }, [handleData, phase]); // eslint-disable-line
 
   // ── Create room (host) ───────────────────────────────────────────────────
   const handleCreate = useCallback(() => {
     const gc = new GameConnection();
     gcRef.current = gc;
     // Init game state immediately so host can see the board while waiting
-    initGame(boardType, initialPiecesRef.current, myColor, true);
+    boardTypeRef.current = selectedConfig.boardType;
+    myColorRef.current = myColor;
+    initialPiecesRef.current = selectedConfig.pieces ?? null;
+    initGame(selectedConfig.boardType, selectedConfig.pieces ?? null, myColor, true);
     gc.on('open', (code) => {
       setRoomCode(code);
       setPhase('waiting');
     });
     setupHandlers(gc, true);
     gc.host();
-  }, [boardType, myColor, initGame, setupHandlers]);
+  }, [selectedConfig, myColor, initGame, setupHandlers]);
 
   // ── Join room (guest) ────────────────────────────────────────────────────
   const handleJoin = useCallback(() => {
@@ -297,13 +375,13 @@ export default function MultiGame() {
   }, [bump]);
 
   // ── Surrender ─────────────────────────────────────────────────────────────
-  const handleSurrender = useCallback(() => {
-    if (!confirm('确定投降？')) return;
+  const handleSurrender = useCallback(async () => {
+    if (!await confirm('确定投降？', { title: '投降确认', confirmText: '确定投降', cancelText: '取消' })) return;
     gcRef.current?.send({ type: MSG.SURRENDER });
     const winner = myColorRef.current === 'red' ? 'black' : 'red';
     setGameResult({ winner, reason: '我方投降' });
     setPhase('over');
-  }, []);
+  }, [confirm]);
 
   // ── Undo request ──────────────────────────────────────────────────────────
   const handleUndoRequest = useCallback(() => {
@@ -347,12 +425,14 @@ export default function MultiGame() {
     setPromotionMove(null);
     setConnStatus('');
     setErrorMsg('');
+    setEmojiFlies([]);
+    // Refresh saved configs list
+    setSavedConfigs(loadSavedConfigs());
   }, []);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const gs         = gsRef.current;
-  const cfg        = CFG[boardType] ?? CFG.hybrid;
-  const activeCfg  = CFG[boardTypeRef.current] ?? cfg;
+  const activeCfg  = CFG[boardTypeRef.current] ?? CFG.hybrid;
   const isMyTurn   = gs && gs.currentTurn === myColorRef.current;
   const oppColor   = myColor === 'red' ? 'black' : 'red';
 
@@ -367,27 +447,36 @@ export default function MultiGame() {
         <header className="app-header">
           <div className="app-title">
             <span className="title-main">局域网对战</span>
-            <span className="title-sub">WebRTC · 无需服务器</span>
+            <span className="title-sub">点对点联机 · 无需服务器</span>
           </div>
           <Link className="nav-link" to="/">← 返回</Link>
         </header>
 
         <div className="multi-lobby">
           <div className="lobby-card">
-            <div className="lobby-section-title">创建房间</div>
-            <div className="lobby-form">
-              <label className="lobby-label">棋盘类型</label>
-              <select className="lobby-select" value={boardType} onChange={e => setBoardType(e.target.value)}>
-                <option value="hybrid">混合棋局 9×10</option>
-                <option value="intl">国际棋局 8×8</option>
-                <option value="split">分界棋盘 9×10</option>
-              </select>
+            <div className="lobby-section-title">选择对局</div>
+            <div className="config-card-grid">
+              {savedConfigs.map(cfg => (
+                <div
+                  key={cfg.id}
+                  className={`config-card${selectedConfig.id === cfg.id ? ' selected' : ''}`}
+                  onClick={() => setSelectedConfig(cfg)}
+                >
+                  <div className="config-card-name">{cfg.label}</div>
+                  <div className="config-card-meta">
+                    <span className="config-card-board">{cfg.boardLabel}</span>
+                    {cfg.isCustom && <span className="config-card-custom">自定义</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="lobby-form" style={{ marginTop: 12 }}>
               <label className="lobby-label">我的阵营</label>
               <select className="lobby-select" value={myColor} onChange={e => setMyColor(e.target.value)}>
                 <option value="red">红方</option>
                 <option value="black">黑方</option>
               </select>
-              <SavedLayoutPicker boardType={boardType} onSelect={p => { initialPiecesRef.current = p; }} />
             </div>
             <button className="btn btn-primary lobby-btn" onClick={handleCreate}>创建房间</button>
           </div>
@@ -474,8 +563,6 @@ export default function MultiGame() {
   }
 
   // ── Playing ───────────────────────────────────────────────────────────────
-  const redActive   = gs?.currentTurn === 'red';
-  const blackActive = gs?.currentTurn === 'black';
   const myTurnLabel = isMyTurn ? '你的回合' : '等待对方...';
   let statusText = myTurnLabel;
   if (gs?.status === 'check')     statusText += '  ⚠️ 将军!';
@@ -509,7 +596,9 @@ export default function MultiGame() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span className="conn-status">{connStatus}</span>
-          <Link className="nav-link" to="#" onClick={() => { if (confirm('确定离开对局？')) handleReturnToLobby(); }}>退出</Link>
+          <Link className="nav-link" to="#" onClick={async () => {
+            if (await confirm('确定离开对局？', { title: '离开对局', confirmText: '确定离开', cancelText: '取消' })) handleReturnToLobby();
+          }}>退出</Link>
         </div>
       </header>
 
@@ -582,6 +671,16 @@ export default function MultiGame() {
             <button className="btn btn-danger" onClick={handleSurrender}>投降</button>
           </div>
 
+          {/* Emoji reactions */}
+          <div className="card">
+            <div className="card-title">发送表情</div>
+            <div className="emoji-grid">
+              {EMOJI_LIST.map(e => (
+                <button key={e} className="emoji-btn" onClick={() => sendEmoji(e)}>{e}</button>
+              ))}
+            </div>
+          </div>
+
           <div className="card">
             <div className="card-title">对局信息</div>
             <div className="rules">
@@ -598,31 +697,14 @@ export default function MultiGame() {
         </aside>
       </div>
 
-      <div className={`toast${toastShow ? ' show' : ''}`}>{toastMsg}</div>
-    </div>
-  );
-}
-
-// ── Saved layout picker (sub-component) ──────────────────────────────────────
-function SavedLayoutPicker({ boardType, onSelect }) {
-  const key = boardType === 'split' ? 'chess_split_layouts' : `chess_layouts_${boardType}`;
-  const raw = localStorage.getItem(key);
-  const layouts = raw ? JSON.parse(raw) : [];
-
-  const legacy = localStorage.getItem(boardType === 'split' ? 'chess_split_layout' : 'chess_custom_layout');
-  const options = legacy ? [{ name: '自定义布局', pieces: JSON.parse(legacy) }, ...layouts] : layouts;
-
-  if (options.length === 0) return null;
-  return (
-    <div style={{ marginTop: 8 }}>
-      <label className="lobby-label">自定义布局（可选）</label>
-      <select className="lobby-select" defaultValue=""
-        onChange={e => onSelect(e.target.value ? JSON.parse(e.target.value) : null)}>
-        <option value="">默认布局</option>
-        {options.map((l, i) => (
-          <option key={i} value={JSON.stringify(l.pieces)}>{l.name || `布局 ${i + 1}`}</option>
+      {/* Flying emojis */}
+      <div className="emoji-fly-container">
+        {emojiFlies.map(({ id, emoji, side }) => (
+          <div key={id} className={`emoji-fly emoji-fly-${side}`}>{emoji}</div>
         ))}
-      </select>
+      </div>
+
+      <div className={`toast${toastShow ? ' show' : ''}`}>{toastMsg}</div>
     </div>
   );
 }
