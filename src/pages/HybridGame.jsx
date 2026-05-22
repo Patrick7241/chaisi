@@ -273,6 +273,7 @@ export default function HybridGame() {
           <span className="title-sub">混合棋局 · 9×10</span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <Link className="nav-link" to="/multi">🔗 联机对战</Link>
           <Link className="nav-link" to="/split">分界棋盘 →</Link>
           <Link className="nav-link" to="/intl">国际棋盘 →</Link>
         </div>

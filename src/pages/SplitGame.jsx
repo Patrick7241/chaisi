@@ -255,6 +255,7 @@ export default function SplitGame() {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <Link className="nav-link" to="/">← 混合棋局</Link>
+          <Link className="nav-link" to="/multi">🔗 联机对战</Link>
           <Link className="nav-link" to="/intl">国际象棋棋盘 →</Link>
         </div>
       </header>
