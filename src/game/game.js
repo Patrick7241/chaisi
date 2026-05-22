@@ -125,24 +125,30 @@ export class GameState {
     const candidates = getCandidateMoves(piece, board);
     const valid = [];
 
-    // Test each candidate move
     for (const move of candidates) {
-      const testBoard = board.clone();
+      // Castling: king must not currently be in check, must not pass through attacked square
+      if (move.castling) {
+        if (this.isInCheck(piece.color, board)) continue;
+        const midCol = (piece.col + move.to.col) / 2;
+        const midBoard = board.clone();
+        midBoard.movePiece(piece.col, piece.row, midCol, piece.row);
+        if (this.isInCheck(piece.color, midBoard)) continue;
+      }
 
-      // Apply move on test board
+      const testBoard = board.clone();
       const target = testBoard.at(move.to.col, move.to.row);
-      if (target) {
-        testBoard.removePiece(move.to.col, move.to.row);
+      if (target) testBoard.removePiece(move.to.col, move.to.row);
+      // Move rook first if castling, so final board state is correct
+      if (move.castling) {
+        testBoard.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
+                            move.castling.rTo.col,   move.castling.rTo.row);
       }
       testBoard.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
-
-      // Handle promotion
       if (move.promotion) {
         const movedPiece = testBoard.at(move.to.col, move.to.row);
-        movedPiece.type = move.promotion;
+        if (movedPiece) movedPiece.type = move.promotion;
       }
 
-      // Check if this move leaves own king/general in check or violates facing rule
       if (!this.isFacingGenerals(testBoard) && !this.isInCheck(piece.color, testBoard)) {
         valid.push(move);
       }
@@ -245,6 +251,12 @@ export class GameState {
     const capturedPiece = this.board.at(move.to.col, move.to.row);
     if (capturedPiece) {
       this.board.removePiece(move.to.col, move.to.row);
+    }
+
+    // Castling: move rook before the king so hasMoved flags are correct
+    if (move.castling) {
+      this.board.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
+                           move.castling.rTo.col,   move.castling.rTo.row);
     }
 
     const piece = this.board.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);

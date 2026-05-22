@@ -330,25 +330,49 @@ function getSoldierMoves(piece, boardState) {
 
 function getKingMoves(piece, boardState) {
   const moves = [];
-  const palace = piece.color === COLOR.RED ? RED_PALACE : BLACK_PALACE;
-  const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  // International king: free 1-step in all 8 directions (no palace confinement)
+  const directions = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 
   directions.forEach(([dc, dr]) => {
     const newCol = piece.col + dc;
     const newRow = piece.row + dr;
-
-    if (isInPalace(newCol, newRow, palace)) {
-      const target = boardState.at(newCol, newRow);
-      if (!target || target.color !== piece.color) {
-        moves.push({
-          from: { col: piece.col, row: piece.row },
-          to: { col: newCol, row: newRow },
-          capture: target || null,
-          promotion: null
-        });
-      }
+    if (!isInBounds(newCol, newRow)) return;
+    const target = boardState.at(newCol, newRow);
+    if (!target || target.color !== piece.color) {
+      moves.push({
+        from: { col: piece.col, row: piece.row },
+        to:   { col: newCol, row: newRow },
+        capture: target || null, promotion: null
+      });
     }
   });
+
+  // Castling — king must not have moved, rooks must be in original positions
+  if (!piece.hasMoved) {
+    const rookTypes = ['rook_i', 'rook'];
+    // Kingside (col 7)
+    const kr = boardState.at(7, piece.row);
+    if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
+        !boardState.at(5, piece.row) && !boardState.at(6, piece.row)) {
+      moves.push({
+        from: { col: piece.col, row: piece.row },
+        to:   { col: 6, row: piece.row },
+        capture: null, promotion: null,
+        castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } }
+      });
+    }
+    // Queenside (col 0)
+    const qr = boardState.at(0, piece.row);
+    if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
+        !boardState.at(1, piece.row) && !boardState.at(2, piece.row) && !boardState.at(3, piece.row)) {
+      moves.push({
+        from: { col: piece.col, row: piece.row },
+        to:   { col: 2, row: piece.row },
+        capture: null, promotion: null,
+        castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } }
+      });
+    }
+  }
 
   return moves;
 }
@@ -462,42 +486,27 @@ function getPawnMoves(piece, boardState) {
   const moves = [];
   const isBlack = piece.color === COLOR.BLACK;
   const direction = isBlack ? 1 : -1;
+  const promotionRow = isBlack ? ROWS - 1 : 0;
 
-  // Single step forward
+  // Single step forward — ONLY if square is empty (pawns cannot capture forward)
   const oneStep = piece.row + direction;
-  if (isInBounds(piece.col, oneStep)) {
-    const target = boardState.at(piece.col, oneStep);
-    if (!target || target.color !== piece.color) {
-      const moveObj = {
-        from: { col: piece.col, row: piece.row },
-        to: { col: piece.col, row: oneStep },
-        capture: target || null,
-        promotion: null
-      };
+  if (isInBounds(piece.col, oneStep) && !boardState.at(piece.col, oneStep)) {
+    const moveObj = {
+      from: { col: piece.col, row: piece.row },
+      to:   { col: piece.col, row: oneStep },
+      capture: null,
+      promotion: oneStep === promotionRow ? PIECE_TYPES.QUEEN : null
+    };
+    moves.push(moveObj);
 
-      // Check for promotion
-      const promotionRow = isBlack ? ROWS - 1 : 0;
-      if (oneStep === promotionRow) {
-        moveObj.promotion = PIECE_TYPES.QUEEN;
-      }
-
-      moves.push(moveObj);
-    }
-  }
-
-  // Two steps forward on first move
-  if (!piece.hasMoved) {
-    const twoSteps = piece.row + direction * 2;
-    if (isInBounds(piece.col, twoSteps)) {
-      const oneStepPiece = boardState.at(piece.col, oneStep);
-      const twoStepsPiece = boardState.at(piece.col, twoSteps);
-
-      if (!oneStepPiece && (!twoStepsPiece || twoStepsPiece.color !== piece.color)) {
+    // Two steps forward on first move (only if both squares are empty)
+    if (!piece.hasMoved) {
+      const twoSteps = piece.row + direction * 2;
+      if (isInBounds(piece.col, twoSteps) && !boardState.at(piece.col, twoSteps)) {
         moves.push({
           from: { col: piece.col, row: piece.row },
-          to: { col: piece.col, row: twoSteps },
-          capture: null,
-          promotion: null
+          to:   { col: piece.col, row: twoSteps },
+          capture: null, promotion: null
         });
       }
     }
@@ -507,25 +516,15 @@ function getPawnMoves(piece, boardState) {
   [[1, 0], [-1, 0]].forEach(([dc]) => {
     const newCol = piece.col + dc;
     const newRow = piece.row + direction;
-
-    if (isInBounds(newCol, newRow)) {
-      const target = boardState.at(newCol, newRow);
-      if (target && target.color !== piece.color) {
-        const moveObj = {
-          from: { col: piece.col, row: piece.row },
-          to: { col: newCol, row: newRow },
-          capture: target,
-          promotion: null
-        };
-
-        // Check for promotion
-        const promotionRow = isBlack ? ROWS - 1 : 0;
-        if (newRow === promotionRow) {
-          moveObj.promotion = PIECE_TYPES.QUEEN;
-        }
-
-        moves.push(moveObj);
-      }
+    if (!isInBounds(newCol, newRow)) return;
+    const target = boardState.at(newCol, newRow);
+    if (target && target.color !== piece.color) {
+      moves.push({
+        from: { col: piece.col, row: piece.row },
+        to:   { col: newCol, row: newRow },
+        capture: target,
+        promotion: newRow === promotionRow ? PIECE_TYPES.QUEEN : null
+      });
     }
   });
 

@@ -117,9 +117,21 @@ export class GameState {
     const valid = [];
 
     for (const move of candidates) {
+      if (move.castling) {
+        if (this.isInCheck(piece.color, board)) continue;
+        const midCol = (piece.col + move.to.col) / 2;
+        const midBoard = board.clone();
+        midBoard.movePiece(piece.col, piece.row, midCol, piece.row);
+        if (this.isInCheck(piece.color, midBoard)) continue;
+      }
+
       const testBoard = board.clone();
       const target = testBoard.at(move.to.col, move.to.row);
       if (target) testBoard.removePiece(move.to.col, move.to.row);
+      if (move.castling) {
+        testBoard.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
+                            move.castling.rTo.col,   move.castling.rTo.row);
+      }
       testBoard.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
       if (move.promotion) {
         const pp = testBoard.at(move.to.col, move.to.row);
@@ -196,6 +208,11 @@ export class GameState {
   executeMove(move) {
     const captured = this.board.at(move.to.col, move.to.row);
     if (captured) this.board.removePiece(move.to.col, move.to.row);
+
+    if (move.castling) {
+      this.board.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
+                           move.castling.rTo.col,   move.castling.rTo.row);
+    }
 
     const piece = this.board.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
     if (move.promotion && piece) piece.type = move.promotion;

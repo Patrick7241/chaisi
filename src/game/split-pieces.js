@@ -226,7 +226,7 @@ function soldierAsPawnMoves(piece, board) {
 
 // ────────────────────────── Red (International) pieces ───────────────────────
 
-// ♔ in Int'l zone — 1-step 8 directions
+// ♔ in Int'l zone — 1-step 8 directions + castling
 function kingMoves(piece, board) {
   const moves = [];
   for (const [dc, dr] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) {
@@ -235,6 +235,28 @@ function kingMoves(piece, board) {
     const t = board.at(c, r);
     if (!t || t.color !== piece.color) moves.push(mv(piece, c, r, t));
   }
+
+  // Castling (only in international zone, king on its home row)
+  if (!piece.hasMoved) {
+    const rookTypes = ['rook_i', 'rook'];
+    // Kingside (col 7)
+    const kr = board.at(7, piece.row);
+    if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
+        !board.at(5, piece.row) && !board.at(6, piece.row)) {
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 6, row: piece.row },
+                   capture: null, promotion: null,
+                   castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
+    }
+    // Queenside (col 0)
+    const qr = board.at(0, piece.row);
+    if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
+        !board.at(1, piece.row) && !board.at(2, piece.row) && !board.at(3, piece.row)) {
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 2, row: piece.row },
+                   capture: null, promotion: null,
+                   castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
+    }
+  }
+
   return moves;
 }
 

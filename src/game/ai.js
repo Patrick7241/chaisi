@@ -117,6 +117,10 @@ function allPieces(board, color) {
 function applyMove(board, move) {
   const b = board.clone();
   if (b.at(move.to.col, move.to.row)) b.removePiece(move.to.col, move.to.row);
+  if (move.castling) {
+    b.movePiece(move.castling.rFrom.col, move.castling.rFrom.row,
+                move.castling.rTo.col,   move.castling.rTo.row);
+  }
   b.movePiece(move.from.col, move.from.row, move.to.col, move.to.row);
   if (move.promotion) {
     const pp = b.at(move.to.col, move.to.row);

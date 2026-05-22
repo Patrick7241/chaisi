@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { GameState, BoardState } from '../game/game.js';
-import { COLOR } from '../game/constants.js';
+import { COLOR, CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/constants.js';
 import {
   initCanvas, drawBoard, drawPieces, drawHighlights,
   clearCanvas, pixelToGrid
@@ -120,7 +120,13 @@ export default function HybridGame() {
   // ── Canvas click ─────────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
     const rect = uiCanvasRef.current.getBoundingClientRect();
-    const { col, row } = pixelToGrid(e.clientX - rect.left, e.clientY - rect.top);
+    // Compensate for responsive CSS scaling: CSS px → logical game px
+    const sx = CANVAS_WIDTH  / rect.width;
+    const sy = CANVAS_HEIGHT / rect.height;
+    const { col, row } = pixelToGrid(
+      (e.clientX - rect.left) * sx,
+      (e.clientY - rect.top)  * sy
+    );
 
     if (isSetupModeRef.current) {
       gsRef.current.board.removePiece(col, row);
@@ -148,7 +154,12 @@ export default function HybridGame() {
     e.preventDefault();
     if (!isSetupModeRef.current) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
-    const { col, row } = pixelToGrid(e.clientX - rect.left, e.clientY - rect.top);
+    const sx = CANVAS_WIDTH  / rect.width;
+    const sy = CANVAS_HEIGHT / rect.height;
+    const { col, row } = pixelToGrid(
+      (e.clientX - rect.left) * sx,
+      (e.clientY - rect.top)  * sy
+    );
     gsRef.current.board.removePiece(col, row);
     bump();
   }, [bump]);
@@ -427,6 +438,7 @@ export default function HybridGame() {
                 <li><strong>象:</strong> 斜走两格，象脚不可被阻</li>
                 <li><strong>马:</strong> 先直走一格，再斜走一格</li>
                 <li><strong>将帅照面:</strong> 同列中间无子则禁止</li>
+                <li><strong>王车易位:</strong> 黑方王未动且车未动可易位（王不可过被攻击格）</li>
                 <li><strong>兵升变:</strong> 黑方兵到达第 9 行升变为后</li>
               </ul>
             </div>

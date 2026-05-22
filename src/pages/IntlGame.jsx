@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { GameState, BoardState } from '../game/intl-game.js';
-import { COLOR } from '../game/intl-constants.js';
+import { COLOR, CANVAS_SIZE } from '../game/intl-constants.js';
 import {
   initCanvas, drawBoard, drawPieces, drawHighlights,
   clearCanvas, pixelToSquare
@@ -129,7 +129,11 @@ export default function IntlGame() {
   // ── Canvas click ──────────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
     const rect = uiCanvasRef.current.getBoundingClientRect();
-    const { col, row } = pixelToSquare(e.clientX - rect.left, e.clientY - rect.top);
+    const s = CANVAS_SIZE / rect.width;
+    const { col, row } = pixelToSquare(
+      (e.clientX - rect.left) * s,
+      (e.clientY - rect.top)  * s
+    );
 
     if (isSetupModeRef.current) {
       gsRef.current.board.removePiece(col, row);
@@ -158,7 +162,11 @@ export default function IntlGame() {
     e.preventDefault();
     if (!isSetupModeRef.current) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
-    const { col, row } = pixelToSquare(e.clientX - rect.left, e.clientY - rect.top);
+    const s = CANVAS_SIZE / rect.width;
+    const { col, row } = pixelToSquare(
+      (e.clientX - rect.left) * s,
+      (e.clientY - rect.top)  * s
+    );
     gsRef.current.board.removePiece(col, row);
     bump();
   }, [bump]);

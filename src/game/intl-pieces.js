@@ -36,16 +36,37 @@ function slide(piece, board, dirs) {
 
 // ── International pieces ──────────────────────────────────────────────────────
 
-// King: confined to 3×3 palace (hybrid rule, same as general)
+// King: free 1-step in all 8 directions (international rules, no palace)
 function getKingMoves(piece, board) {
-  const pal = palace(piece);
   const moves = [];
   [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dc, dr]) => {
     const col = piece.col + dc, row = piece.row + dr;
-    if (!inPalace(col, row, pal)) return;
+    if (!ok(col, row)) return;
     const t = board.at(col, row);
     if (!t || t.color !== piece.color) moves.push(mv(piece, col, row, t));
   });
+
+  // Castling
+  if (!piece.hasMoved) {
+    const rookTypes = ['rook', 'rook_i'];
+    // Kingside (col 7)
+    const kr = board.at(7, piece.row);
+    if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
+        !board.at(5, piece.row) && !board.at(6, piece.row)) {
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 6, row: piece.row },
+                   capture: null, promotion: null,
+                   castling: { rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
+    }
+    // Queenside (col 0)
+    const qr = board.at(0, piece.row);
+    if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
+        !board.at(1, piece.row) && !board.at(2, piece.row) && !board.at(3, piece.row)) {
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 2, row: piece.row },
+                   capture: null, promotion: null,
+                   castling: { rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
+    }
+  }
+
   return moves;
 }
 

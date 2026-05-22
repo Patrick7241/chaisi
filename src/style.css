@@ -484,16 +484,101 @@ body {
 #intl-sel-chinese.active,
 #intl-sel-intl.active    { background: #1a3f6f; border-color: #2980b9; color: #fff; }
 
-/* ── Responsive ───────────────────────────────────────────────────────────── */
-@media (max-width: 820px) {
-  .game-layout    { flex-direction: column; }
-  .side-panel     { max-width: 100%; min-width: 0; width: 100%; }
-  .board-area     { align-self: center; }
+/* ── Touch / pointer optimisations ───────────────────────────────────────── */
+#ui-canvas, #intl-ui-canvas {
+  /* Prevent 300 ms tap delay and unwanted touch behaviours */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@media (max-width: 520px) {
-  .app            { padding: 10px 12px 28px; }
-  .title-main     { font-size: 1.1rem; }
-  .title-sub      { display: none; }
-  .action-row .btn { font-size: 0.8rem; padding: 9px 8px; }
+/* ── Board area — always shrinks to canvas width ─────────────────────────── */
+.board-area {
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  .game-layout { flex-direction: column; align-items: center; }
+  .side-panel  { max-width: 100%; min-width: 0; width: 100%; }
+  .board-area  { align-self: center; }
+}
+
+/* ── Tablet / large phone (≤ 600px) ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .app { padding: 10px 12px 28px; }
+
+  /* Header: allow nav links to wrap below title */
+  .app-header {
+    flex-wrap: wrap;
+    gap: 6px 0;
+    padding-bottom: 10px;
+  }
+  .app-header > div { /* nav link container */
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .nav-link {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+
+  /* Board container: less padding so canvas gets more room */
+  .board-container { padding: 5px; }
+
+  /* Player bars: compact */
+  .player-bar { padding: 7px 10px; gap: 8px; }
+  .player-avatar { width: 32px; height: 32px; }
+  .player-avatar.black-avatar { font-size: 16px; }
+  .player-name { font-size: 0.87rem; }
+  .player-sub  { font-size: 0.72rem; }
+
+  /* Status card */
+  .status-card { font-size: 0.87rem; padding: 11px 13px; }
+
+  /* Buttons — min 44 px tall for comfortable touch */
+  .btn { min-height: 44px; padding: 10px 10px; font-size: 0.85rem; }
+
+  /* Card */
+  .card { padding: 12px 13px; }
+
+  /* AI controls */
+  .ai-toggle { font-size: 0.85rem; }
+  .ai-toggle input[type="checkbox"] { width: 18px; height: 18px; }
+
+  /* Setup panel */
+  .color-btn  { padding: 7px 13px; font-size: 0.82rem; }
+  .tool-btn   { padding: 7px 10px; font-size: 0.8rem; }
+  .palette-piece { width: 44px; height: 44px; font-size: 16px; }
+  .setup-actions button { padding: 9px 12px; font-size: 0.82rem; min-height: 40px; }
+  .play-btn { flex: 1 1 100%; } /* stretch to full width */
+
+  /* Rules: slightly smaller */
+  .rules li { font-size: 0.8rem; }
+}
+
+/* ── Small phone (≤ 420px) ───────────────────────────────────────────────── */
+@media (max-width: 420px) {
+  .app { padding: 8px 8px 20px; }
+
+  .title-main { font-size: 1.05rem; }
+  .title-sub  { display: none; }
+
+  .board-container { padding: 4px; }
+
+  /* Tighter player bars */
+  .player-bar { padding: 6px 8px; }
+
+  /* Ensure action buttons fill row evenly */
+  .action-row { gap: 6px; }
+  .btn { font-size: 0.82rem; }
+
+  /* Palette: 5-per-row on very narrow screens */
+  .piece-palette { gap: 5px; padding: 8px; }
+  .palette-piece { width: 40px; height: 40px; font-size: 15px; }
+
+  /* Toast closer to bottom safe area */
+  .toast { bottom: 20px; font-size: 0.84rem; padding: 9px 20px; }
 }

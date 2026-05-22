@@ -15,9 +15,13 @@ export function initCanvas(canvasEl) {
 
   canvasEl.width  = CANVAS_WIDTH  * dpr;
   canvasEl.height = CANVAS_HEIGHT * dpr;
-  canvasEl.style.width  = CANVAS_WIDTH  + 'px';
-  canvasEl.style.height = CANVAS_HEIGHT + 'px';
   ctx.scale(dpr, dpr);
+
+  // Responsive: scale CSS display size to fit viewport on mobile
+  const maxW  = Math.min(CANVAS_WIDTH, window.innerWidth - 24);
+  const scale = maxW / CANVAS_WIDTH;
+  canvasEl.style.width  = Math.round(CANVAS_WIDTH  * scale) + 'px';
+  canvasEl.style.height = Math.round(CANVAS_HEIGHT * scale) + 'px';
 
   if (canvasEl.id === 'board-canvas') boardCtx = ctx;
   else if (canvasEl.id === 'ui-canvas') uiCtx = ctx;
