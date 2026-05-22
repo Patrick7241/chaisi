@@ -7,6 +7,10 @@ import { GameConnection, MSG } from '../network/peer.js';
 import * as HB from '../game/board.js';
 import * as IB from '../game/intl-board.js';
 import * as SB from '../game/split-board.js';
+import {
+  initGomokuCanvas, clearGomokuCanvas, drawGomokuBoard,
+  drawGomokuStones, pixelToGomokuGrid, CANVAS_SIZE as GS_SIZE,
+} from '../game/gomoku-board.js';
 
 // ── Game state classes ────────────────────────────────────────────────────────
 import { GameState as HGS } from '../game/game.js';
@@ -14,6 +18,7 @@ import { GameState as IGS } from '../game/intl-game.js';
 import { GameState as SGS } from '../game/split-game.js';
 import { GameState as CGS } from '../game/chinese-game.js';
 import { GameState as PGS } from '../game/pure-intl-game.js';
+import { GomokuState }       from '../game/gomoku-game.js';
 
 // ── Canvas dimensions ─────────────────────────────────────────────────────────
 import { CANVAS_WIDTH as HW, CANVAS_HEIGHT as HH } from '../game/constants.js';
@@ -66,6 +71,11 @@ const CFG = {
 
 // Replay all moves onto a fresh game state (used for undo)
 function replayMoves(boardType, pieces, moves) {
+  if (boardType === 'gomoku') {
+    const gs = new GomokuState();
+    moves.forEach(mv => gs.executeMove(mv.row, mv.col));
+    return gs;
+  }
   const cfg = CFG[boardType];
   const gs = new cfg.GS(pieces ?? null);
   moves.forEach(mv => cfg.exec(gs, mv));
@@ -98,6 +108,7 @@ function loadSavedConfigs() {
   configs.push({ id: 'split-default',     boardType: 'split',     pieces: null, label: '分界棋局 (9×10)',           isCustom: false, boardLabel: '分界棋盘' });
   configs.push({ id: 'intl-default',      boardType: 'intl',      pieces: null, label: '混合棋局 (国象棋盘 8×8)',  isCustom: false, boardLabel: '国际棋局' });
   configs.push({ id: 'pure-intl-default', boardType: 'pure-intl', pieces: null, label: '国际象棋 (8×8)',           isCustom: false, boardLabel: '国际象棋' });
+  configs.push({ id: 'gomoku-default',    boardType: 'gomoku',    pieces: null, label: '五子棋 (15×15)',           isCustom: false, boardLabel: '五子棋' });
 
   // Custom layouts
   const types = [
@@ -202,8 +213,15 @@ export default function MultiGame() {
   // ── Canvas redraw ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!canvasReadyRef.current || !gsRef.current) return;
+    const gs = gsRef.current;
+    if (boardTypeRef.current === 'gomoku') {
+      const ctx = boardCanvasRef.current?.getContext('2d');
+      clearGomokuCanvas(ctx);
+      drawGomokuBoard(ctx);
+      drawGomokuStones(ctx, gs.board, gs.lastMove, gs.winLine);
+      return;
+    }
     const cfg = CFG[boardTypeRef.current];
-    const gs  = gsRef.current;
     cfg.B.clearCanvas();
     cfg.B.drawBoard();
     cfg.B.drawPieces(gs.board, gs.board.pieces);
@@ -218,8 +236,27 @@ export default function MultiGame() {
     return () => gcRef.current?.destroy();
   }, []);
 
+  // ── Reset myColor when switching between Gomoku and chess ─────────────────
+  const isGomokuMode = selectedConfig?.boardType === 'gomoku';
+  useEffect(() => {
+    if (isGomokuMode && myColor === 'red') {
+      setMyColor('black');
+    } else if (!isGomokuMode && myColor === 'white') {
+      setMyColor('red');
+    }
+  }, [isGomokuMode]); // eslint-disable-line
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   const initGame = useCallback((bType, pieces, hostColor, isHost) => {
+    if (bType === 'gomoku') {
+      boardTypeRef.current   = 'gomoku';
+      myColorRef.current     = isHost ? hostColor : (hostColor === 'black' ? 'white' : 'black');
+      initialPiecesRef.current = null;
+      moveLogRef.current     = [];
+      gsRef.current          = new GomokuState();
+      setMyColor(myColorRef.current);
+      return;
+    }
     const cfg = CFG[bType];
     boardTypeRef.current = bType;
     myColorRef.current   = isHost ? hostColor : (hostColor === 'red' ? 'black' : 'red');
@@ -230,6 +267,12 @@ export default function MultiGame() {
   }, []);
 
   const initCanvases = useCallback(() => {
+    if (boardTypeRef.current === 'gomoku') {
+      if (boardCanvasRef.current) initGomokuCanvas(boardCanvasRef.current);
+      canvasReadyRef.current = true;
+      bump();
+      return;
+    }
     const cfg = CFG[boardTypeRef.current];
     if (boardCanvasRef.current) cfg.B.initCanvas(boardCanvasRef.current);
     if (uiCanvasRef.current)    cfg.B.initCanvas(uiCanvasRef.current);
@@ -263,9 +306,22 @@ export default function MultiGame() {
       }
       case MSG.MOVE: {
         const gs = gsRef.current;
-        cfg.exec(gs, data.move);
-        moveLogRef.current.push(data.move);
-        bump();
+        if (boardTypeRef.current === 'gomoku') {
+          gs.executeMove(data.move.row, data.move.col);
+          moveLogRef.current.push(data.move);
+          bump();
+          if (gs.status === 'win') {
+            setGameResult({ winner: gs.winner, reason: '五子连珠' });
+            setPhase('over');
+          } else if (gs.status === 'draw') {
+            setGameResult({ winner: null, reason: '棋盘落满，平局' });
+            setPhase('over');
+          }
+        } else {
+          cfg.exec(gs, data.move);
+          moveLogRef.current.push(data.move);
+          bump();
+        }
         break;
       }
       case MSG.UNDO_REQUEST: {
@@ -364,6 +420,29 @@ export default function MultiGame() {
     if (promotionRef.current) return;
     const gs = gsRef.current;
     if (!gs) return;
+
+    // ── Gomoku click ───────────────────────────────────────────────────────
+    if (boardTypeRef.current === 'gomoku') {
+      if (gs.status !== 'playing') return;
+      if (gs.currentTurn !== myColorRef.current) return;
+      const pos = pixelToGomokuGrid(boardCanvasRef.current, e.clientX, e.clientY);
+      if (!pos) return;
+      const ok = gs.executeMove(pos.row, pos.col);
+      if (!ok) return;
+      const mv = { row: pos.row, col: pos.col };
+      moveLogRef.current.push(mv);
+      gcRef.current?.send({ type: MSG.MOVE, move: mv });
+      bump();
+      if (gs.status === 'win') {
+        setGameResult({ winner: gs.winner, reason: '五子连珠' });
+        setPhase('over');
+      } else if (gs.status === 'draw') {
+        setGameResult({ winner: null, reason: '棋盘落满，平局' });
+        setPhase('over');
+      }
+      return;
+    }
+
     if (gs.status === 'checkmate' || gs.status === 'stalemate') return;
 
     // Only allow interaction on your own turn
@@ -421,7 +500,10 @@ export default function MultiGame() {
   const handleSurrender = useCallback(async () => {
     if (!await confirm('确定投降？', { title: '投降确认', confirmText: '确定投降', cancelText: '取消' })) return;
     gcRef.current?.send({ type: MSG.SURRENDER });
-    const winner = myColorRef.current === 'red' ? 'black' : 'red';
+    const isGomoku = boardTypeRef.current === 'gomoku';
+    const winner = isGomoku
+      ? (myColorRef.current === 'black' ? 'white' : 'black')
+      : (myColorRef.current === 'red' ? 'black' : 'red');
     setGameResult({ winner, reason: '我方投降' });
     setPhase('over');
   }, [confirm]);
@@ -475,9 +557,13 @@ export default function MultiGame() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const gs         = gsRef.current;
-  const activeCfg  = CFG[boardTypeRef.current] ?? CFG.hybrid;
+  const activeCfg  = boardTypeRef.current === 'gomoku'
+    ? { label: '五子棋 15×15' }
+    : (CFG[boardTypeRef.current] ?? CFG.hybrid);
   const isMyTurn   = gs && gs.currentTurn === myColorRef.current;
-  const oppColor   = myColor === 'red' ? 'black' : 'red';
+  const oppColor   = boardTypeRef.current === 'gomoku'
+    ? (myColor === 'black' ? 'white' : 'black')
+    : (myColor === 'red' ? 'black' : 'red');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -516,10 +602,17 @@ export default function MultiGame() {
 
             <div className="lobby-form" style={{ marginTop: 12 }}>
               <label className="lobby-label">我的阵营</label>
-              <select className="lobby-select" value={myColor} onChange={e => setMyColor(e.target.value)}>
-                <option value="red">红方</option>
-                <option value="black">黑方</option>
-              </select>
+              {isGomokuMode ? (
+                <select className="lobby-select" value={myColor} onChange={e => setMyColor(e.target.value)}>
+                  <option value="black">黑方 (先手)</option>
+                  <option value="white">白方 (后手)</option>
+                </select>
+              ) : (
+                <select className="lobby-select" value={myColor} onChange={e => setMyColor(e.target.value)}>
+                  <option value="red">红方</option>
+                  <option value="black">黑方</option>
+                </select>
+              )}
             </div>
             <button className="btn btn-primary lobby-btn" onClick={handleCreate}>创建房间</button>
           </div>
@@ -592,12 +685,13 @@ export default function MultiGame() {
 
   // ── Game Over ─────────────────────────────────────────────────────────────
   if (phase === 'over') {
-    const iWon = gameResult?.winner === myColorRef.current;
+    const isDraw = gameResult?.winner === null;
+    const iWon   = !isDraw && gameResult?.winner === myColorRef.current;
     return (
       <div className="app">
         <div className="multi-waiting">
-          <div className="waiting-title" style={{ color: iWon ? '#81b64c' : '#e04545' }}>
-            {iWon ? '🎉 你赢了！' : '😔 你输了'}
+          <div className="waiting-title" style={{ color: isDraw ? '#888' : iWon ? '#81b64c' : '#e04545' }}>
+            {isDraw ? '🤝 平局！' : iWon ? '🎉 你赢了！' : '😔 你输了'}
           </div>
           <div className="waiting-hint">{gameResult?.reason}</div>
           <button className="btn btn-primary over-btn" onClick={handleReturnToLobby}>返回大厅</button>
@@ -609,29 +703,39 @@ export default function MultiGame() {
   // ── Playing ───────────────────────────────────────────────────────────────
   const myTurnLabel = isMyTurn ? '你的回合' : '等待对方...';
   let statusText = myTurnLabel;
-  if (gs?.status === 'check')     statusText += '  ⚠️ 将军!';
-  if (gs?.status === 'checkmate') {
-    const w = gs.winner === myColorRef.current ? '你赢了！' : '你输了';
-    statusText = `将死！${w}`;
+  if (boardTypeRef.current === 'gomoku') {
+    if (gs?.status === 'win') statusText = gs.winner === myColorRef.current ? '🎉 你赢了！' : '😔 你输了';
+    else if (gs?.status === 'draw') statusText = '🤝 平局！';
+  } else {
+    if (gs?.status === 'check')     statusText += '  ⚠️ 将军!';
+    if (gs?.status === 'checkmate') {
+      const w = gs.winner === myColorRef.current ? '你赢了！' : '你输了';
+      statusText = `将死！${w}`;
+    }
   }
 
   // Player labels per board type
   const playerLabels = {
-    hybrid:     { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
-    chinese:    { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
-    intl:       { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
-    'pure-intl':{ red: { name: '白方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
-    split:      { red: { name: '红方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
+    hybrid:     { red:   { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    chinese:    { red:   { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
+    intl:       { red:   { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    'pure-intl':{ red:   { name: '白方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    split:      { red:   { name: '红方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
+    gomoku:     { black: { name: '黑方', sub: '五子棋',   avatar: '●' }, white: { name: '白方', sub: '五子棋',   avatar: '○' } },
   };
   const labels = playerLabels[boardTypeRef.current] || playerLabels.hybrid;
   const myLabel  = labels[myColorRef.current];
   const oppLabel = labels[oppColor];
-  const topLabel  = myColorRef.current === 'black' ? myLabel : oppLabel;
-  const botLabel  = myColorRef.current === 'red'   ? myLabel : oppLabel;
-  const topColor  = myColorRef.current === 'black' ? myColorRef.current : oppColor;
-  const botColor  = myColorRef.current === 'red'   ? myColorRef.current : oppColor;
-  const topActive = gs?.currentTurn === topColor;
-  const botActive = gs?.currentTurn === botColor;
+  // For Gomoku: black is "top" (opponent of white); for chess: black is top
+  const isGomoku = boardTypeRef.current === 'gomoku';
+  const firstColor  = isGomoku ? 'black' : 'black';  // top player color when not flipped
+  const topIsMe     = myColorRef.current === firstColor;
+  const topLabel    = topIsMe ? myLabel : oppLabel;
+  const botLabel    = topIsMe ? oppLabel : myLabel;
+  const topColor    = topIsMe ? myColorRef.current : oppColor;
+  const botColor    = topIsMe ? oppColor : myColorRef.current;
+  const topActive   = gs?.currentTurn === topColor;
+  const botActive   = gs?.currentTurn === botColor;
 
   return (
     <div className="app">
@@ -651,8 +755,14 @@ export default function MultiGame() {
       <div className="game-layout">
         <div className="board-area">
           {/* Top player bar */}
-          <div className={`player-bar${topActive ? ' active' : ''}${topColor === 'black' ? ' my-bar' : ''}`}>
-            <div className={`player-avatar ${topColor}-avatar`}>{topLabel.avatar}</div>
+          <div className={`player-bar${topActive ? ' active' : ''}${topColor === myColorRef.current ? ' my-bar' : ''}`}>
+            {boardTypeRef.current === 'gomoku' ? (
+              <div className="player-avatar" style={topColor === 'black'
+                ? { background: 'radial-gradient(circle at 35% 35%, #666, #000)', color: '#fff', fontSize: 18 }
+                : { background: 'radial-gradient(circle at 35% 35%, #fff, #ccc)', color: '#333', border: '1px solid #ccc', fontSize: 18 }}>●</div>
+            ) : (
+              <div className={`player-avatar ${topColor}-avatar`}>{topLabel.avatar}</div>
+            )}
             <div className="player-info">
               <span className="player-name">{topLabel.name}{topColor === myColorRef.current ? ' (我)' : ' (对方)'}</span>
               <span className="player-sub">{topLabel.sub}</span>
@@ -661,12 +771,21 @@ export default function MultiGame() {
           </div>
 
           <div className="board-container">
-            <div className={`canvas-wrapper${myColor === 'black' ? ' board-flipped' : ''}`} key={boardTypeRef.current}>
-              <canvas ref={boardCanvasRef} id={activeCfg.boardId} />
-              <canvas ref={uiCanvasRef} id={activeCfg.uiId}
-                onClick={handleCanvasClick}
-                style={{ cursor: isMyTurn ? 'pointer' : 'default' }}
-              />
+            <div className={`canvas-wrapper${myColor === 'black' && boardTypeRef.current !== 'gomoku' ? ' board-flipped' : ''}`} key={boardTypeRef.current}>
+              {boardTypeRef.current === 'gomoku' ? (
+                <canvas ref={boardCanvasRef} id="gomoku-canvas"
+                  onClick={handleCanvasClick}
+                  style={{ cursor: isMyTurn ? 'pointer' : 'default', display: 'block' }}
+                />
+              ) : (
+                <>
+                  <canvas ref={boardCanvasRef} id={activeCfg.boardId} />
+                  <canvas ref={uiCanvasRef} id={activeCfg.uiId}
+                    onClick={handleCanvasClick}
+                    style={{ cursor: isMyTurn ? 'pointer' : 'default' }}
+                  />
+                </>
+              )}
               {promotionMove && (
                 <div className="promotion-overlay">
                   <div className="promotion-dialog">
@@ -695,7 +814,13 @@ export default function MultiGame() {
 
           {/* Bottom player bar */}
           <div className={`player-bar${botActive ? ' active' : ''}${botColor === myColorRef.current ? ' my-bar' : ''}`}>
-            <div className={`player-avatar ${botColor}-avatar`}>{botLabel.avatar}</div>
+            {boardTypeRef.current === 'gomoku' ? (
+              <div className="player-avatar" style={botColor === 'black'
+                ? { background: 'radial-gradient(circle at 35% 35%, #666, #000)', color: '#fff', fontSize: 18 }
+                : { background: 'radial-gradient(circle at 35% 35%, #fff, #ccc)', color: '#333', border: '1px solid #ccc', fontSize: 18 }}>●</div>
+            ) : (
+              <div className={`player-avatar ${botColor}-avatar`}>{botLabel.avatar}</div>
+            )}
             <div className="player-info">
               <span className="player-name">{botLabel.name}{botColor === myColorRef.current ? ' (我)' : ' (对方)'}</span>
               <span className="player-sub">{botLabel.sub}</span>

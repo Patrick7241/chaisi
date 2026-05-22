@@ -7,6 +7,7 @@ const MODES = [
   { path: '/split',     label: '分界棋局',  sub: '跨界 9×10'     },
   { path: '/intl',      label: '混合棋局',  sub: '国象棋盘 8×8'  },
   { path: '/pure-intl', label: '国际象棋',  sub: '纯国象 8×8'    },
+  { path: '/gomoku',    label: '五子棋',    sub: '15×15'         },
 ];
 
 export function GameNav() {

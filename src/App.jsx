@@ -7,6 +7,7 @@ import Layouts      from './pages/Layouts.jsx';
 import EditLayout   from './pages/EditLayout.jsx';
 import ChineseGame  from './pages/ChineseGame.jsx';
 import PureIntlGame from './pages/PureIntlGame.jsx';
+import GomokuGame   from './pages/GomokuGame.jsx';
 
 // Fixed QQ group badge
 function QQBadge() {
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/split"       element={<SplitGame />} />
         <Route path="/intl"        element={<IntlGame />} />
         <Route path="/pure-intl"   element={<PureIntlGame />} />
+        <Route path="/gomoku"      element={<GomokuGame />} />
         <Route path="/multi"       element={<MultiGame />} />
         <Route path="/layouts"     element={<Layouts />} />
         <Route path="/edit-layout" element={<EditLayout />} />
