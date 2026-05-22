@@ -156,13 +156,13 @@ export default function Layouts() {
   function handleEdit(board, index) {
     const layout = readLayouts(board.storageKey)[index];
     sessionStorage.setItem('chess_pending_edit', JSON.stringify({
-      boardType: board.key,
-      pieces:    layout.pieces,
-      name:      layout.name,
+      boardType:  board.key,
+      pieces:     layout.pieces,
+      name:       layout.name,
       index,
       storageKey: board.storageKey,
     }));
-    navigate(board.path);
+    navigate('/edit-layout');
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────

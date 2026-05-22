@@ -74,22 +74,6 @@ export default function HybridGame() {
 
   // ── Init canvases (once) ─────────────────────────────────────────────────
   useEffect(() => {
-    // Check if coming from Layouts page "编辑" button
-    const pending = sessionStorage.getItem('chess_pending_edit');
-    if (pending) {
-      try {
-        const { boardType, pieces } = JSON.parse(pending);
-        if (boardType === 'hybrid') {
-          sessionStorage.removeItem('chess_pending_edit');
-          gsRef.current.board = new BoardState();
-          pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
-          isSetupModeRef.current = true;
-          setIsSetupMode(true);
-          setupPieceTypeRef.current = null;
-          setSetupPieceType(null);
-        }
-      } catch (_) {}
-    }
     initCanvas(boardCanvasRef.current);
     initCanvas(uiCanvasRef.current);
     canvasReady.current = true;

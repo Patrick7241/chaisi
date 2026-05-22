@@ -80,21 +80,6 @@ export default function IntlGame() {
 
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const pending = sessionStorage.getItem('chess_pending_edit');
-    if (pending) {
-      try {
-        const { boardType, pieces } = JSON.parse(pending);
-        if (boardType === 'intl') {
-          sessionStorage.removeItem('chess_pending_edit');
-          gsRef.current.board = new BoardState();
-          pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
-          isSetupModeRef.current = true;
-          setIsSetupMode(true);
-          setupPieceTypeRef.current = null;
-          setSetupPieceType(null);
-        }
-      } catch (_) {}
-    }
     initCanvas(boardCanvasRef.current);
     initCanvas(uiCanvasRef.current);
     canvasReady.current = true;

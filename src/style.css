@@ -1098,3 +1098,43 @@ body {
   .layouts-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
   .layout-thumbnail-wrap { padding: 10px 8px 8px; min-height: 75px; }
 }
+
+/* ── Floating 联机对战 button ────────────────────────────────────────────── */
+.multi-float-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 72px;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 28px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  z-index: 80;
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.multi-float-btn span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+.multi-float-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+}
+
+@media (max-width: 600px) {
+  .multi-float-btn {
+    right: 12px;
+    bottom: 60px;
+    padding: 8px 12px;
+    font-size: 1.1rem;
+  }
+}
