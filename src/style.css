@@ -578,6 +578,9 @@ body {
     padding-bottom: 10px;
   }
   .game-nav { width: 100%; }
+  .mode-picker { flex: 1; }
+  .mode-picker-btn { width: 100%; justify-content: space-between; }
+  .mode-dropdown { left: 0; right: 0; min-width: unset; }
   .nav-link {
     font-size: 0.8rem;
     padding: 5px 10px;
