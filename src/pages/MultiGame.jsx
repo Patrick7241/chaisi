@@ -12,6 +12,8 @@ import * as SB from '../game/split-board.js';
 import { GameState as HGS } from '../game/game.js';
 import { GameState as IGS } from '../game/intl-game.js';
 import { GameState as SGS } from '../game/split-game.js';
+import { GameState as CGS } from '../game/chinese-game.js';
+import { GameState as PGS } from '../game/pure-intl-game.js';
 
 // ── Canvas dimensions ─────────────────────────────────────────────────────────
 import { CANVAS_WIDTH as HW, CANVAS_HEIGHT as HH } from '../game/constants.js';
@@ -28,8 +30,24 @@ const CFG = {
     getLastMove:  gs => gs.moveHistory?.[gs.moveHistory.length - 1]?.move ?? null,
     exec:         (gs, mv) => gs.executeMove(mv),
   },
+  chinese: {
+    label: '中国象棋 9×10', B: HB, GS: CGS,
+    W: HW, H: HH, boardId: 'board-canvas', uiId: 'ui-canvas',
+    toGrid: HB.pixelToGrid,
+    getSelected:  gs => gs.selectedPiece,
+    getLastMove:  gs => gs.moveHistory?.[gs.moveHistory.length - 1]?.move ?? null,
+    exec:         (gs, mv) => gs.executeMove(mv),
+  },
   intl: {
     label: '国际棋局 8×8', B: IB, GS: IGS,
+    W: IS, H: IS, boardId: 'intl-board-canvas', uiId: 'intl-ui-canvas',
+    toGrid: IB.pixelToSquare,
+    getSelected:  gs => gs.selected,
+    getLastMove:  gs => gs.history?.[gs.history.length - 1] ?? null,
+    exec:         (gs, mv) => gs._execute(mv),
+  },
+  'pure-intl': {
+    label: '国际象棋 8×8', B: IB, GS: PGS,
     W: IS, H: IS, boardId: 'intl-board-canvas', uiId: 'intl-ui-canvas',
     toGrid: IB.pixelToSquare,
     getSelected:  gs => gs.selected,
@@ -75,15 +93,19 @@ function loadSavedConfigs() {
   const configs = [];
 
   // Default configs
-  configs.push({ id: 'hybrid-default',  boardType: 'hybrid', pieces: null, label: '中国象棋棋盘 9×10', isCustom: false, boardLabel: '中国象棋棋盘' });
-  configs.push({ id: 'intl-default',    boardType: 'intl',   pieces: null, label: '国际棋局 8×8',  isCustom: false, boardLabel: '国际棋局' });
-  configs.push({ id: 'split-default',   boardType: 'split',  pieces: null, label: '分界棋盘 9×10', isCustom: false, boardLabel: '分界棋盘' });
+  configs.push({ id: 'hybrid-default',    boardType: 'hybrid',    pieces: null, label: '混合棋局 (中象棋盘 9×10)', isCustom: false, boardLabel: '中国象棋棋盘' });
+  configs.push({ id: 'chinese-default',   boardType: 'chinese',   pieces: null, label: '中国象棋 (9×10)',          isCustom: false, boardLabel: '中国象棋' });
+  configs.push({ id: 'split-default',     boardType: 'split',     pieces: null, label: '分界棋局 (9×10)',           isCustom: false, boardLabel: '分界棋盘' });
+  configs.push({ id: 'intl-default',      boardType: 'intl',      pieces: null, label: '混合棋局 (国象棋盘 8×8)',  isCustom: false, boardLabel: '国际棋局' });
+  configs.push({ id: 'pure-intl-default', boardType: 'pure-intl', pieces: null, label: '国际象棋 (8×8)',           isCustom: false, boardLabel: '国际象棋' });
 
   // Custom layouts
   const types = [
-    { boardType: 'hybrid', newKey: 'chess_layouts_hybrid', oldKey: 'chess_custom_layout', boardLabel: '中国象棋棋盘' },
-    { boardType: 'intl',   newKey: 'chess_layouts_intl',   oldKey: 'intl_hybrid_layout',  boardLabel: '国际棋局' },
-    { boardType: 'split',  newKey: 'chess_layouts_split',  oldKey: 'chess_split_layout',  boardLabel: '分界棋盘' },
+    { boardType: 'hybrid',    newKey: 'chess_layouts_hybrid',    oldKey: 'chess_custom_layout', boardLabel: '中国象棋棋盘' },
+    { boardType: 'chinese',   newKey: 'chess_layouts_chinese',   oldKey: null,                  boardLabel: '中国象棋' },
+    { boardType: 'intl',      newKey: 'chess_layouts_intl',      oldKey: 'intl_hybrid_layout',  boardLabel: '国际棋局' },
+    { boardType: 'pure-intl', newKey: 'chess_layouts_pure_intl', oldKey: null,                  boardLabel: '国际象棋' },
+    { boardType: 'split',     newKey: 'chess_layouts_split',     oldKey: 'chess_split_layout',  boardLabel: '分界棋盘' },
   ];
 
   for (const { boardType, newKey, oldKey, boardLabel } of types) {
@@ -595,9 +617,11 @@ export default function MultiGame() {
 
   // Player labels per board type
   const playerLabels = {
-    hybrid: { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
-    intl:   { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
-    split:  { red: { name: '红方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
+    hybrid:     { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    chinese:    { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
+    intl:       { red: { name: '红方', sub: '中国象棋', avatar: '將' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    'pure-intl':{ red: { name: '白方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '国际象棋', avatar: '♚' } },
+    split:      { red: { name: '红方', sub: '国际象棋', avatar: '♔' }, black: { name: '黑方', sub: '中国象棋', avatar: '將' } },
   };
   const labels = playerLabels[boardTypeRef.current] || playerLabels.hybrid;
   const myLabel  = labels[myColorRef.current];
