@@ -63,6 +63,69 @@ body {
   color: #b8e085;
 }
 
+/* ── GameNav (shared across all game pages) ───────────────────────────────── */
+.game-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-picker {
+  position: relative;
+}
+
+.mode-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2825;
+  border: 1px solid #3e5828;
+  border-radius: 8px;
+  color: #b8e085;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.mode-picker-btn:hover { background: #3e5828; }
+
+.mode-picker-label { color: #b8e085; }
+.mode-picker-sub   { color: #6a8850; font-size: 0.75rem; font-weight: 400; }
+.mode-picker-arrow { font-size: 0.7rem; color: #6a8850; }
+
+.mode-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #1e1c1a;
+  border: 1px solid #3a3835;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+  overflow: hidden;
+  z-index: 200;
+  min-width: 180px;
+}
+
+.mode-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: #c8c6c3;
+  transition: background 0.15s;
+  border-bottom: 1px solid #2e2c2a;
+}
+.mode-dropdown-item:last-child { border-bottom: none; }
+.mode-dropdown-item:hover      { background: #2a2825; }
+.mode-dropdown-item.active     { background: #2e3e20; }
+
+.mode-dropdown-label { font-size: 0.88rem; font-weight: 600; color: #e8e6e3; }
+.mode-dropdown-sub   { font-size: 0.74rem; color: #6a6866; margin-top: 1px; }
+.mode-dropdown-item.active .mode-dropdown-label { color: #b8e085; }
+
 /* ── Game layout ──────────────────────────────────────────────────────────── */
 .game-layout {
   display: flex;
@@ -508,22 +571,18 @@ body {
 @media (max-width: 600px) {
   .app { padding: 10px 12px 28px; }
 
-  /* Header: allow nav links to wrap below title */
+  /* Header: allow nav to wrap below title */
   .app-header {
     flex-wrap: wrap;
     gap: 6px 0;
     padding-bottom: 10px;
   }
-  .app-header > div { /* nav link container */
-    width: 100%;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .game-nav { width: 100%; }
   .nav-link {
     font-size: 0.8rem;
     padding: 5px 10px;
   }
+  .mode-picker-sub { display: none; }
 
   /* Board container: less padding so canvas gets more room */
   .board-container { padding: 5px; }
@@ -764,6 +823,13 @@ body {
   border: 1px solid #b02020;
 }
 .btn-danger:hover { filter: brightness(1.2); }
+
+/* Game-over / error screen back button — compact, not stretched */
+.over-btn {
+  flex: 0 0 auto !important;
+  padding: 10px 32px !important;
+  margin-top: 8px;
+}
 
 .my-bar {
   border-color: #81b64c40 !important;

@@ -54,6 +54,22 @@ function replayMoves(boardType, pieces, moves) {
   return gs;
 }
 
+// Convert raw PeerJS error to user-friendly message
+function friendlyError(raw) {
+  const s = String(raw ?? '').toLowerCase();
+  if (s.includes('peer-unavailable') || s.includes('peer not found') || s.includes('does not exist'))
+    return '找不到该房间，请确认房间码是否正确，或对方是否已离开。';
+  if (s.includes('unavailable-id'))
+    return '房间码已被占用，请稍后重试。';
+  if (s.includes('network') || s.includes('ice') || s.includes('connection failed'))
+    return '网络连接失败，请检查您的网络设置后重试。';
+  if (s.includes('server-error') || s.includes('socket'))
+    return '服务器异常，请稍后重试。';
+  if (s.includes('disconnected'))
+    return '与对方的连接已断开。';
+  return '连接出错，请重新尝试加入房间。';
+}
+
 // ── Load all saved configs from localStorage ──────────────────────────────────
 function loadSavedConfigs() {
   const configs = [];
@@ -540,12 +556,13 @@ export default function MultiGame() {
 
   // ── Error ─────────────────────────────────────────────────────────────────
   if (phase === 'error') {
+    const friendly = friendlyError(errorMsg);
     return (
       <div className="app">
         <div className="multi-waiting">
-          <div className="waiting-title" style={{ color: '#e04545' }}>连接出错</div>
-          <div className="waiting-hint">{errorMsg}</div>
-          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleReturnToLobby}>返回大厅</button>
+          <div className="waiting-title" style={{ color: '#e04545' }}>连接失败</div>
+          <div className="waiting-hint">{friendly}</div>
+          <button className="btn btn-primary over-btn" onClick={handleReturnToLobby}>返回大厅</button>
         </div>
       </div>
     );
@@ -561,7 +578,7 @@ export default function MultiGame() {
             {iWon ? '🎉 你赢了！' : '😔 你输了'}
           </div>
           <div className="waiting-hint">{gameResult?.reason}</div>
-          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleReturnToLobby}>返回大厅</button>
+          <button className="btn btn-primary over-btn" onClick={handleReturnToLobby}>返回大厅</button>
         </div>
       </div>
     );

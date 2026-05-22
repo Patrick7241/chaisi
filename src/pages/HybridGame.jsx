@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { useDialog } from '../components/Dialog.jsx';
 import { GameState, BoardState } from '../game/game.js';
 import { COLOR, CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/constants.js';
@@ -8,6 +7,7 @@ import {
   clearCanvas, pixelToGrid, setFlipped, isFlipped
 } from '../game/board.js';
 import { getBestMove } from '../game/ai.js';
+import { GameNav } from '../components/GameNav.jsx';
 
 const RED_PALETTE = [
   { type: 'general', label: '將' },
@@ -297,12 +297,7 @@ export default function HybridGame() {
           <span className="title-main">中国象棋 vs 国际象棋</span>
           <span className="title-sub">中国象棋棋盘 · 9×10</span>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Link className="nav-link" to="/layouts">📋 布局管理</Link>
-          <Link className="nav-link" to="/multi">🔗 联机对战</Link>
-          <Link className="nav-link" to="/split">分界棋盘 →</Link>
-          <Link className="nav-link" to="/intl">国际棋盘 →</Link>
-        </div>
+        <GameNav />
       </header>
 
       <div className="game-layout">
