@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>象棋融合 8×8</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="app-title">
+        <span class="title-main">象棋融合 8×8</span>
+        <span class="title-sub">国际象棋棋盘 · 融合规则</span>
+      </div>
+      <a class="nav-link" href="index.html">← 返回 9×10 混合棋局</a>
+    </header>
+
+    <div class="game-layout">
+      <!-- ── Board area ─────────────────────────────────────────────────── -->
+      <div class="board-area">
+
+        <!-- Black player (top) -->
+        <div class="player-bar" id="intl-player-bar-black">
+          <div class="player-avatar black-avatar">♚</div>
+          <div class="player-info">
+            <span class="player-name">黑方</span>
+            <span class="player-sub">国际象棋</span>
+          </div>
+          <div class="player-turn-dot"></div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="board-container">
+          <div class="canvas-wrapper">
+            <canvas id="intl-board-canvas"></canvas>
+            <canvas id="intl-ui-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Red player (bottom) -->
+        <div class="player-bar active" id="intl-player-bar-red">
+          <div class="player-avatar red-avatar">將</div>
+          <div class="player-info">
+            <span class="player-name">红方</span>
+            <span class="player-sub">中国象棋</span>
+          </div>
+          <div class="player-turn-dot"></div>
+        </div>
+
+      </div><!-- /board-area -->
+
+      <!-- ── Side panel ─────────────────────────────────────────────────── -->
+      <aside class="side-panel">
+
+        <!-- Status -->
+        <div class="status-card" id="intl-status">当前回合: 红方</div>
+
+        <!-- Action buttons -->
+        <div class="action-row">
+          <button id="intl-setup-btn" class="btn btn-secondary">摆子模式</button>
+          <button id="intl-reset-btn" class="btn btn-primary">重新开始</button>
+        </div>
+
+        <!-- AI controls -->
+        <div class="card">
+          <div class="card-title">AI 对弈</div>
+          <div class="ai-controls">
+            <label class="ai-toggle"><input type="checkbox" id="intl-ai-red-check"> 红方 AI</label>
+            <label class="ai-toggle"><input type="checkbox" id="intl-ai-black-check"> 黑方 AI</label>
+          </div>
+          <div class="ai-depth-row">
+            <span class="card-label">难度:</span>
+            <select id="intl-ai-depth-sel">
+              <option value="1">简单</option>
+              <option value="2" selected>普通</option>
+              <option value="3">困难</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Setup panel (hidden by default) -->
+        <div id="intl-setup-panel" class="card" style="display:none">
+          <div class="setup-header">
+            <span class="setup-title">摆子模式</span>
+
+            <!-- 阵营选择 -->
+            <div class="color-select">
+              <span class="axis-label card-label">阵营:</span>
+              <button id="intl-sel-red"   class="color-btn active">红方</button>
+              <button id="intl-sel-black" class="color-btn">黑方</button>
+            </div>
+
+            <!-- 棋种选择 -->
+            <div class="color-select">
+              <span class="axis-label card-label">棋种:</span>
+              <button id="intl-sel-chinese" class="color-btn active">中国象棋</button>
+              <button id="intl-sel-intl"    class="color-btn">国际象棋</button>
+            </div>
+
+            <div class="setup-tools">
+              <button id="intl-erase-btn"   class="tool-btn">🧹 橡皮擦</button>
+              <button id="intl-clear-btn"   class="tool-btn">清空棋盘</button>
+              <button id="intl-default-btn" class="tool-btn">恢复默认</button>
+            </div>
+          </div>
+
+          <div id="intl-piece-palette" class="piece-palette"></div>
+
+          <div class="setup-footer">
+            <div class="setup-hint">左键放子 · 右键删子 · 橡皮擦 + 左键也可删子</div>
+            <div class="setup-actions">
+              <button id="intl-save-btn">💾 保存布局</button>
+              <button id="intl-load-btn">📂 加载布局</button>
+              <button id="intl-play-btn" class="play-btn">▶ 完成摆子，开始对局</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rules -->
+        <div class="card">
+          <div class="card-title">融合规则</div>
+          <div class="rules">
+            <ul>
+              <li><strong>棋盘:</strong> 8×8，河界在第 3/4 行之间</li>
+              <li><strong>宫殿:</strong> 列 3–5，红方行 5–7，黑方行 0–2</li>
+              <li><strong>将/王:</strong> 均限制在各自宫殿内</li>
+              <li><strong>将帅照面:</strong> 同列中间无子 = 禁止</li>
+              <li><strong>象:</strong> 斜走两格，象脚需空，可过河</li>
+              <li><strong>马:</strong> 先直一格（检测马脚），再斜一格</li>
+              <li><strong>炮:</strong> 移动空滑，吃子需隔一炮架</li>
+              <li><strong>兵:</strong> 过河后可横移；到底线升变为后</li>
+            </ul>
+          </div>
+          <div class="piece-list">
+            <div class="piece-row">
+              <strong>红方（底部）:</strong>
+              <span>將 士 象 馬 車 砲 兵</span>
+            </div>
+            <div class="piece-row">
+              <strong>黑方（顶部）:</strong>
+              <span>♔ ♕ ♖ ♗ ♘ ♙</span>
+            </div>
+          </div>
+        </div>
+
+      </aside><!-- /side-panel -->
+    </div><!-- /game-layout -->
+  </div><!-- /app -->
+
+  <script type="module" src="js/intl-main.js"></script>
+</body>
+</html>
