@@ -40,9 +40,10 @@ export class BoardState {
 }
 
 export class GameState {
-  constructor(customPieces = null) {
+  constructor(customPieces = null, firstTurn = COLOR.RED) {
     this.board       = new BoardState();
-    this.currentTurn = COLOR.RED;
+    this.currentTurn = firstTurn;
+    this._firstTurn  = firstTurn;
     this.selected    = null;
     this.validMoves  = [];
     this.history     = [];
@@ -201,7 +202,7 @@ export class GameState {
   }
 
   reset(customPieces = null) {
-    this.board = new BoardState(); this.currentTurn = COLOR.RED;
+    this.board = new BoardState(); this.currentTurn = this._firstTurn ?? COLOR.RED;
     this.selected = null; this.validMoves = []; this.history = [];
     this.positionCount = {};
     this.status = 'ongoing'; this.winner = null; this.checkCell = null;

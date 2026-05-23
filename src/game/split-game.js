@@ -53,9 +53,10 @@ export class BoardState {
 }
 
 export class GameState {
-  constructor(customPieces = null) {
+  constructor(customPieces = null, firstTurn = COLOR.RED) {
     this.board        = new BoardState();
-    this.currentTurn  = COLOR.RED;
+    this.currentTurn  = firstTurn;
+    this._firstTurn   = firstTurn;
     this.selectedPiece = null;
     this.validMoves   = [];
     this.moveHistory  = [];
@@ -148,9 +149,8 @@ export class GameState {
   }
 
   isInCheck(color, board) {
-    // Red king = type 'king'; Black king = type 'general'
-    const kingType = color === COLOR.RED ? PIECE_TYPES.KING : PIECE_TYPES.GENERAL;
-    const king = board.findPiece(kingType, color);
+    const RULERS = [PIECE_TYPES.KING, PIECE_TYPES.GENERAL];
+    const king = board.pieces.find(p => p.color === color && RULERS.includes(p.type));
     if (!king) return false;
 
     const enemyColor = color === COLOR.RED ? COLOR.BLACK : COLOR.RED;
@@ -162,17 +162,18 @@ export class GameState {
     return false;
   }
 
-  // 将帅照面 rule: Red King and Black General in same column with no pieces between
+  // 将帅照面 rule: rulers in same column with no pieces between
   isFacingRulers(board) {
-    const redKing  = board.findPiece(PIECE_TYPES.KING,    COLOR.RED);
-    const blackGen = board.findPiece(PIECE_TYPES.GENERAL, COLOR.BLACK);
-    if (!redKing || !blackGen) return false;
-    if (redKing.col !== blackGen.col) return false;
+    const RULERS = [PIECE_TYPES.KING, PIECE_TYPES.GENERAL];
+    const redRuler   = board.pieces.find(p => p.color === COLOR.RED   && RULERS.includes(p.type));
+    const blackRuler = board.pieces.find(p => p.color === COLOR.BLACK && RULERS.includes(p.type));
+    if (!redRuler || !blackRuler) return false;
+    if (redRuler.col !== blackRuler.col) return false;
 
-    const minRow = Math.min(redKing.row, blackGen.row);
-    const maxRow = Math.max(redKing.row, blackGen.row);
+    const minRow = Math.min(redRuler.row, blackRuler.row);
+    const maxRow = Math.max(redRuler.row, blackRuler.row);
     for (let r = minRow + 1; r < maxRow; r++) {
-      if (!board.isEmpty(redKing.col, r)) return false;
+      if (!board.isEmpty(redRuler.col, r)) return false;
     }
     return true;
   }
@@ -251,8 +252,8 @@ export class GameState {
     this.checkCell = null;
 
     if (this.isInCheck(this.currentTurn, this.board)) {
-      const kingType = this.currentTurn === COLOR.RED ? PIECE_TYPES.KING : PIECE_TYPES.GENERAL;
-      this.checkCell = this.board.findPiece(kingType, this.currentTurn);
+      const RULERS = [PIECE_TYPES.KING, PIECE_TYPES.GENERAL];
+      this.checkCell = this.board.pieces.find(p => p.color === this.currentTurn && RULERS.includes(p.type));
 
       if (this.isCheckmate(this.currentTurn, this.board)) {
         this.status = 'checkmate';
@@ -265,7 +266,7 @@ export class GameState {
 
   reset(customPieces = null) {
     this.board        = new BoardState();
-    this.currentTurn  = COLOR.RED;
+    this.currentTurn  = this._firstTurn ?? COLOR.RED;
     this.selectedPiece = null;
     this.validMoves   = [];
     this.moveHistory  = [];
