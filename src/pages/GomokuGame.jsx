@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { playMove } from '../game/sounds.js';
 import { GomokuState } from '../game/gomoku-game.js';
 import {
   CANVAS_SIZE,

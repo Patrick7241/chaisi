@@ -25,9 +25,12 @@ const CFG = {
     W: HW, H: HH, boardId: 'board-canvas', uiId: 'ui-canvas',
     toGrid: HB.pixelToGrid,
     palettes: {
-      red:   [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
-      black: [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
+      'red-chinese':   [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
+      'red-intl':      [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
+      'black-chinese': [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
+      'black-intl':    [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
     },
+    hasStyle: true,
   },
   intl: {
     label: '国际棋局 8×8',
@@ -48,9 +51,12 @@ const CFG = {
     W: SW, H: SH, boardId: 'board-canvas', uiId: 'ui-canvas',
     toGrid: SB.pixelToGrid,
     palettes: {
-      black: [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
-      red:   [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
+      'red-chinese':   [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
+      'red-intl':      [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
+      'black-chinese': [{t:'general',l:'將'},{t:'advisor',l:'士'},{t:'elephant',l:'象'},{t:'horse',l:'馬'},{t:'rook_c',l:'車'},{t:'cannon',l:'砲'},{t:'soldier',l:'兵'}],
+      'black-intl':    [{t:'king',l:'♔'},{t:'queen',l:'♕'},{t:'rook_i',l:'♖'},{t:'bishop',l:'♗'},{t:'knight',l:'♘'},{t:'pawn',l:'♙'}],
     },
+    hasStyle: true,
   },
 };
 
