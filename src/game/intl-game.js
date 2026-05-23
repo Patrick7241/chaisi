@@ -46,6 +46,7 @@ export class GameState {
     this.selected    = null;
     this.validMoves  = [];
     this.history     = [];
+    this.positionCount = {};
     this.status      = 'ongoing';
     this.winner      = null;
     this.checkCell   = null;
@@ -171,6 +172,12 @@ export class GameState {
     if (move.promotion && piece) piece.type = move.promotion;
     this.history.push(move);
     this.currentTurn = this.currentTurn === COLOR.RED ? COLOR.BLACK : COLOR.RED;
+    // Draw by repetition
+    const key = this.board.pieces.map(p => `${p.type[0]}${p.color[0]}${p.col},${p.row}`).sort().join('|');
+    this.positionCount[key] = (this.positionCount[key] || 0) + 1;
+    if (this.positionCount[key] >= 3) {
+      this.status = 'draw'; this.selected = null; this.validMoves = []; return;
+    }
     this._updateStatus();
     this.selected = null; this.validMoves = [];
   }

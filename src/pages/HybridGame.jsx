@@ -103,7 +103,7 @@ export default function HybridGame() {
   const scheduleAI = useCallback(() => {
     const gs = gsRef.current;
     if (isSetupModeRef.current) return;
-    if (gs.status === 'checkmate') return;
+    if (gs.status === 'checkmate' || gs.status === 'draw') return;
     const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                      (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
     if (!isAITurn || aiThinkingRef.current) return;
@@ -279,6 +279,7 @@ export default function HybridGame() {
     const isAI = (gs.currentTurn === COLOR.RED && aiRed) || (gs.currentTurn === COLOR.BLACK && aiBlack);
     statusText = `当前回合: ${who}${isAI ? ' 🤖' : ''}`;
     if (gs.status === 'check')     statusText += '  ⚠️ 将军!';
+    if (gs.status === 'draw')      statusText = '三重复局！平局';
     if (gs.status === 'checkmate') {
       const w = gs.winner === COLOR.RED ? '红方' : '黑方';
       statusText = `✓ 将死！${w} 获胜！`;

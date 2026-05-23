@@ -708,6 +708,7 @@ export default function MultiGame() {
     else if (gs?.status === 'draw') statusText = '🤝 平局！';
   } else {
     if (gs?.status === 'check')     statusText += '  ⚠️ 将军!';
+    if (gs?.status === 'draw')      statusText = '三重复局！平局';
     if (gs?.status === 'checkmate') {
       const w = gs.winner === myColorRef.current ? '你赢了！' : '你输了';
       statusText = `将死！${w}`;

@@ -155,7 +155,7 @@ export default function IntlGame() {
       bump();
     } else {
       const gs = gsRef.current;
-      if (gs.status === 'checkmate' || gs.status === 'stalemate') return;
+      if (gs.status === 'checkmate' || gs.status === 'stalemate' || gs.status === 'draw') return;
       if (aiThinkingRef.current) return;
       const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                        (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
@@ -299,6 +299,7 @@ export default function IntlGame() {
     if (gs.status === 'check')     statusText += '  ⚠️ 将军!';
     if (gs.status === 'checkmate') statusText = `✓ 将死！${gs.winner === COLOR.RED ? '红方' : '黑方'} 获胜！`;
     if (gs.status === 'stalemate') statusText = '逼和！游戏结束';
+    if (gs.status === 'draw')      statusText = '三重复局！平局';
   }
 
   const redActive   = !isSetupMode && gs.currentTurn === COLOR.RED;

@@ -114,6 +114,25 @@ function allPieces(board, color) {
   return board.findAll ? board.findAll(color) : board.findAllPieces(color);
 }
 
+// ── Position key (for repetition detection) ───────────────────────────────────
+function boardKey(board) {
+  return board.pieces.map(p => `${p.type[0]}${p.color[0]}${p.col},${p.row}`).sort().join('|');
+}
+
+// Get flat move list from any game state's history format
+function recentMoveList(gameState, n = 6) {
+  const hist = gameState.moveHistory || gameState.history || [];
+  return hist.slice(-n).map(e => (e && e.move ? e.move : e)).filter(Boolean);
+}
+
+// Returns true if the candidate move exactly reverses any of the recent moves
+function isReversal(move, recent) {
+  return recent.some(r =>
+    r.from.col === move.to.col && r.from.row === move.to.row &&
+    r.to.col  === move.from.col && r.to.row  === move.from.row
+  );
+}
+
 function applyMove(board, move) {
   const b = board.clone();
   if (b.at(move.to.col, move.to.row) && !move.castling) b.removePiece(move.to.col, move.to.row);
@@ -197,6 +216,20 @@ export function getBestMove(gameState, aiColor, depth = 2) {
   const board    = gameState.board;
   const pieces   = allPieces(board, aiColor);
 
+  // Collect recent moves and position keys for repetition avoidance
+  const recent   = recentMoveList(gameState, 6);
+  const seenKeys = new Set();
+  // Build position keys from recent history by replaying (cheap: only last 4 boards)
+  {
+    let b = board.clone();
+    const replayMoves = recentMoveList(gameState, 4);
+    seenKeys.add(boardKey(b));
+    // walk backwards: undo isn't available, so we just tag the current key
+    // and also any key after applying each candidate will be checked below
+    void replayMoves; // keys of past boards not needed; current key is enough
+  }
+  const currentKey = boardKey(board);
+
   const pairs = [];
   for (const piece of pieces) {
     for (const move of gameState.getValidMoves(piece)) {
@@ -207,12 +240,13 @@ export function getBestMove(gameState, aiColor, depth = 2) {
 
   sortMoves(pairs);
 
-  // depth=1 → pure greedy (fast), randomise ties
+  // depth=1 → pure greedy (fast), randomise ties; avoid reversals
   if (depth === 1) {
-    const top = pairs[0];
+    const preferred = pairs.filter(p => !isReversal(p.move, recent));
+    const pool = preferred.length > 0 ? preferred : pairs;
+    const top = pool[0];
     const topVal = captureValue(top.move);
-    const tied   = pairs.filter(p => captureValue(p.move) === topVal);
-    // among captures / quiets, shuffle equally-valued moves
+    const tied   = pool.filter(p => captureValue(p.move) === topVal);
     return tied[Math.floor(Math.random() * tied.length)].move;
   }
 
@@ -220,13 +254,16 @@ export function getBestMove(gameState, aiColor, depth = 2) {
   let bestScore = -Infinity;
 
   for (const { move } of pairs) {
-    const newBoard = applyMove(board, move);
-    const score    = minimax(gameState, newBoard, depth - 1,
-                             -Infinity, Infinity, false, aiColor, oppColor);
+    const newBoard  = applyMove(board, move);
+    const score     = minimax(gameState, newBoard, depth - 1,
+                              -Infinity, Infinity, false, aiColor, oppColor);
+    // Penalise reversals and immediate repetition (returning to current position)
+    const repPenalty = isReversal(move, recent) ? 800 : 0;
+    const backToSame = boardKey(newBoard) === currentKey ? 600 : 0;
     // small random tiebreak so AI doesn't always play same opening
     const jitter = (Math.random() - 0.5) * 5;
-    if (score + jitter > bestScore) {
-      bestScore = score + jitter;
+    if (score - repPenalty - backToSame + jitter > bestScore) {
+      bestScore = score - repPenalty - backToSame + jitter;
       bestMove  = move;
     }
   }
