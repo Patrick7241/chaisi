@@ -165,6 +165,15 @@ export default function ChineseGame() {
     scheduleAI();
   }
 
+  function handleUndo() {
+    if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    aiThinkingRef.current = false;
+    setAiThinking(false);
+    const hasAI = aiRedRef.current || aiBlackRef.current;
+    gsRef.current.undoMove(hasAI ? 2 : 1);
+    bump();
+  }
+
   function toggleSetupMode() {
     if (isSetupModeRef.current) {
       if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
@@ -293,6 +302,8 @@ export default function ChineseGame() {
               setFlipped(next);
               bump();
             }}>↕ 翻转</button>
+            <button className="btn btn-secondary" onClick={handleUndo}
+              disabled={isSetupMode || gs.moveHistory.length === 0}>悔棋</button>
             <button className="btn btn-primary" onClick={handleReset}>重新开始</button>
           </div>
 

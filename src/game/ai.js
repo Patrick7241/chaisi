@@ -240,15 +240,19 @@ export function getBestMove(gameState, aiColor, depth = 2) {
 
   sortMoves(pairs);
 
-  // depth=1 → pure greedy (fast), randomise ties; avoid reversals
+  // depth=1 → greedy with large noise so moves feel less robotic
   if (depth === 1) {
-    const preferred = pairs.filter(p => !isReversal(p.move, recent));
-    const pool = preferred.length > 0 ? preferred : pairs;
-    const top = pool[0];
-    const topVal = captureValue(top.move);
-    const tied   = pool.filter(p => captureValue(p.move) === topVal);
-    return tied[Math.floor(Math.random() * tied.length)].move;
+    let best = -Infinity, bestMove = pairs[0].move;
+    for (const { move } of pairs) {
+      if (isReversal(move, recent)) continue;
+      const score = captureValue(move) + (Math.random() - 0.5) * 120;
+      if (score > best) { best = score; bestMove = move; }
+    }
+    return bestMove;
   }
+
+  // Jitter scales with difficulty: more noise = less predictable opening/midgame
+  const jitterScale = depth === 2 ? 28 : 8;
 
   let bestMove  = pairs[0].move;
   let bestScore = -Infinity;
@@ -260,8 +264,7 @@ export function getBestMove(gameState, aiColor, depth = 2) {
     // Penalise reversals and immediate repetition (returning to current position)
     const repPenalty = isReversal(move, recent) ? 800 : 0;
     const backToSame = boardKey(newBoard) === currentKey ? 600 : 0;
-    // small random tiebreak so AI doesn't always play same opening
-    const jitter = (Math.random() - 0.5) * 5;
+    const jitter = (Math.random() - 0.5) * 2 * jitterScale;
     if (score - repPenalty - backToSame + jitter > bestScore) {
       bestScore = score - repPenalty - backToSame + jitter;
       bestMove  = move;

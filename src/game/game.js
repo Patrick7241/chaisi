@@ -71,6 +71,7 @@ export class GameState {
     this.status = 'ongoing';
     this.winner = null;
     this.checkCell = null;
+    this._startPieces = customPieces ? customPieces.map(p => ({ ...p })) : null;
 
     if (customPieces) {
       customPieces.forEach(p => this.board.addPiece({ ...p, hasMoved: false }));
@@ -328,6 +329,15 @@ export class GameState {
         this.status = 'check';
       }
     }
+  }
+
+  undoMove(n = 2) {
+    if (this.moveHistory.length === 0) return false;
+    const actualN   = Math.min(n, this.moveHistory.length);
+    const remaining = this.moveHistory.slice(0, -actualN).map(e => e.move);
+    this.reset(this._startPieces);
+    remaining.forEach(m => this.executeMove(m));
+    return true;
   }
 
   reset(customPieces = null) {
