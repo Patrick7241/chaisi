@@ -4,7 +4,7 @@ import { GameState, BoardState } from '../game/pure-intl-game.js';
 import { COLOR, CANVAS_SIZE } from '../game/intl-constants.js';
 import {
   initCanvas, drawBoard, drawPieces, drawHighlights,
-  clearCanvas, pixelToSquare, setFlipped, isFlipped
+  clearCanvas, pixelToSquare, setFlipped, isFlipped, setWhiteMode
 } from '../game/intl-board.js';
 import { getBestMove } from '../game/ai.js';
 import { GameNav } from '../components/GameNav.jsx';
@@ -61,11 +61,13 @@ export default function PureIntlGame() {
   }
 
   useEffect(() => {
+    setWhiteMode(true);
     initCanvas(boardCanvasRef.current);
     initCanvas(uiCanvasRef.current);
     canvasReady.current = true;
     bump();
     return () => {
+      setWhiteMode(false); // reset when unmounting
       canvasReady.current = false;
       if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     };
@@ -301,7 +303,7 @@ export default function PureIntlGame() {
                     <div className="promo-title">选择升变棋子</div>
                     <div className="promo-pieces">
                       {[{t:'queen',s:'♕'},{t:'rook',s:'♖'},{t:'bishop',s:'♗'},{t:'knight',s:'♘'}].map(({t,s})=>(
-                        <button key={t} className={`promo-piece ${gsRef.current.currentTurn}`} onClick={()=>handlePromotion(t)}>{s}</button>
+                        <button key={t} className={`promo-piece ${gsRef.current.currentTurn === 'red' ? 'white' : 'black'}`} onClick={()=>handlePromotion(t)}>{s}</button>
                       ))}
                     </div>
                   </div>
@@ -311,7 +313,7 @@ export default function PureIntlGame() {
           </div>
 
           <div className={`player-bar${redActive ? ' active' : ''}`}>
-            <div className="player-avatar red-avatar">♔</div>
+            <div className="player-avatar white-avatar">♔</div>
             <div className="player-info">
               <span className="player-name">白方</span>
               <span className="player-sub">国际象棋</span>

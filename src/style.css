@@ -186,6 +186,14 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
 
+.player-avatar.white-avatar {
+  background: radial-gradient(circle at 35% 35%, #fffdf4, #d8d0bc);
+  color: #2a2010;
+  border: 2px solid #b0a888;
+  font-size: 19px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+
 .player-info {
   flex: 1;
   display: flex;
@@ -667,6 +675,7 @@ body {
   line-height: 1;
 }
 .promo-piece.red   { background: radial-gradient(circle at 35% 35%, #e84848, #8a1010); color: #f5e030; }
+.promo-piece.white { background: radial-gradient(circle at 35% 35%, #fffdf4, #d8d0bc); color: #2a2010; border-color: #b0a888; }
 .promo-piece.black { background: radial-gradient(circle at 35% 35%, #505050, #0c0c0c); color: #d0d0d0; }
 .promo-piece:hover { transform: scale(1.12); border-color: #f0a030; }
 

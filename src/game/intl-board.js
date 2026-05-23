@@ -7,9 +7,11 @@ import {
 
 let boardCtx = null;
 let uiCtx    = null;
-let _flipped = false;
-export function setFlipped(val) { _flipped = val; }
-export function isFlipped()     { return _flipped; }
+let _flipped   = false;
+let _whiteMode = false; // true = render 'red' side as white/ivory (pure intl chess)
+export function setFlipped(val)    { _flipped   = val; }
+export function isFlipped()        { return _flipped; }
+export function setWhiteMode(val)  { _whiteMode = val; }
 
 export function initCanvas(canvasEl) {
   const ctx = canvasEl.getContext('2d');
@@ -132,6 +134,8 @@ function drawSinglePiece(ctx, x, y, piece) {
   const r = PIECE_RADIUS;
   const isRed     = piece.color === 'red';
   const isChinese = CHINESE_TYPES.has(piece.type);
+  // In white mode (pure intl), 'red' side is rendered as white/ivory
+  const isWhite   = isRed && _whiteMode;
 
   // Drop shadow
   ctx.save();
@@ -141,7 +145,7 @@ function drawSinglePiece(ctx, x, y, piece) {
   ctx.shadowOffsetY = 2;
 
   // Outer border ring
-  ctx.fillStyle = isRed ? '#5a0a0a' : '#000000';
+  ctx.fillStyle = isWhite ? '#b0a888' : isRed ? '#5a0a0a' : '#000000';
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
@@ -149,7 +153,11 @@ function drawSinglePiece(ctx, x, y, piece) {
 
   // Radial gradient fill
   const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.05, x, y, r * 0.95);
-  if (isRed) {
+  if (isWhite) {
+    grad.addColorStop(0, '#fffdf4');
+    grad.addColorStop(0.55, '#f0ebe0');
+    grad.addColorStop(1, '#d8d0bc');
+  } else if (isRed) {
     grad.addColorStop(0, '#e84848');
     grad.addColorStop(0.55, '#be1e1e');
     grad.addColorStop(1, '#8a1010');
@@ -163,15 +171,15 @@ function drawSinglePiece(ctx, x, y, piece) {
   ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
   ctx.fill();
 
-  // Inner decorative ring (Chinese pieces get gold ring, intl pieces get subtler ring)
+  // Inner decorative ring
   if (isChinese) {
-    ctx.strokeStyle = isRed ? 'rgba(245, 220, 60, 0.72)' : 'rgba(180, 180, 180, 0.42)';
+    ctx.strokeStyle = isWhite ? 'rgba(160,140,80,0.6)' : isRed ? 'rgba(245, 220, 60, 0.72)' : 'rgba(180, 180, 180, 0.42)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(x, y, r - 5.5, 0, Math.PI * 2);
     ctx.stroke();
   } else {
-    ctx.strokeStyle = isRed ? 'rgba(245, 200, 80, 0.50)' : 'rgba(160, 160, 160, 0.32)';
+    ctx.strokeStyle = isWhite ? 'rgba(140,120,60,0.45)' : isRed ? 'rgba(245, 200, 80, 0.50)' : 'rgba(160, 160, 160, 0.32)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.arc(x, y, r - 5, 0, Math.PI * 2);
@@ -195,11 +203,11 @@ function drawSinglePiece(ctx, x, y, piece) {
   }
 
   if (isChinese) {
-    ctx.fillStyle = isRed ? '#f5e030' : '#d0d0d0';
+    ctx.fillStyle = isWhite ? '#3a3020' : isRed ? '#f5e030' : '#d0d0d0';
     ctx.font = `bold 15px 'STKaiti', 'FangSong', 'Noto Serif SC', serif`;
     drawText(CHINESE_SYMBOLS[piece.type] || '?', x, y);
   } else {
-    ctx.fillStyle = isRed ? '#f5e030' : '#d8d8d8';
+    ctx.fillStyle = isWhite ? '#2a2010' : isRed ? '#f5e030' : '#d8d8d8';
     ctx.font = `bold 17px serif`;
     drawText(INTL_SYMBOLS[piece.type] || '?', x, y + 1);
   }

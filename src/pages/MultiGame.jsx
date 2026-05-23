@@ -278,6 +278,8 @@ export default function MultiGame() {
     if (uiCanvasRef.current)    cfg.B.initCanvas(uiCanvasRef.current);
     // Auto-flip: black pieces should appear at the bottom for the black player
     cfg.B.setFlipped(myColorRef.current === 'black');
+    // White mode: pure-intl renders red side as white/ivory pieces
+    if (cfg.B.setWhiteMode) cfg.B.setWhiteMode(boardTypeRef.current === 'pure-intl');
     canvasReadyRef.current = true;
     bump();
   }, [bump]);
@@ -762,7 +764,7 @@ export default function MultiGame() {
                 ? { background: 'radial-gradient(circle at 35% 35%, #666, #000)', color: '#fff', fontSize: 18 }
                 : { background: 'radial-gradient(circle at 35% 35%, #fff, #ccc)', color: '#333', border: '1px solid #ccc', fontSize: 18 }}>●</div>
             ) : (
-              <div className={`player-avatar ${topColor}-avatar`}>{topLabel.avatar}</div>
+              <div className={`player-avatar ${boardTypeRef.current === 'pure-intl' && topColor === 'red' ? 'white' : topColor}-avatar`}>{topLabel.avatar}</div>
             )}
             <div className="player-info">
               <span className="player-name">{topLabel.name}{topColor === myColorRef.current ? ' (我)' : ' (对方)'}</span>
@@ -820,7 +822,7 @@ export default function MultiGame() {
                 ? { background: 'radial-gradient(circle at 35% 35%, #666, #000)', color: '#fff', fontSize: 18 }
                 : { background: 'radial-gradient(circle at 35% 35%, #fff, #ccc)', color: '#333', border: '1px solid #ccc', fontSize: 18 }}>●</div>
             ) : (
-              <div className={`player-avatar ${botColor}-avatar`}>{botLabel.avatar}</div>
+              <div className={`player-avatar ${boardTypeRef.current === 'pure-intl' && botColor === 'red' ? 'white' : botColor}-avatar`}>{botLabel.avatar}</div>
             )}
             <div className="player-info">
               <span className="player-name">{botLabel.name}{botColor === myColorRef.current ? ' (我)' : ' (对方)'}</span>
