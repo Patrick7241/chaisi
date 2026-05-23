@@ -7,6 +7,7 @@ import {
   clearCanvas, pixelToGrid, setFlipped, isFlipped
 } from '../game/board.js';
 import { getBestMove } from '../game/ai.js';
+import { playMove, playCapture, playSoundForLastMove } from '../game/sounds.js';
 import { GameNav } from '../components/GameNav.jsx';
 
 // ── Palettes ─────────────────────────────────────────────────────────────────
@@ -163,7 +164,7 @@ export default function HybridGame() {
       const move = getBestMove(gsRef.current, gsRef.current.currentTurn, aiDepthRef.current);
       aiThinkingRef.current = false;
       setAiThinking(false);
-      if (move) gsRef.current.executeMove(move);
+      if (move) { gsRef.current.executeMove(move); (move.capture ? playCapture() : playMove()); }
       bump();
       aiTimerRef.current = setTimeout(scheduleAI, 400);
     }, 80);
@@ -204,7 +205,9 @@ export default function HybridGame() {
         if (move?.needsChoice) { setPromotionMove(move); bump(); return; }
       }
 
+      const _histLen = gs.moveHistory.length;
       gs.selectPiece(col, row);
+      if (gs.moveHistory.length > _histLen) playSoundForLastMove(gs);
       bump();
       scheduleAI();
     }
@@ -229,6 +232,7 @@ export default function HybridGame() {
   const handlePromotion = useCallback((type) => {
     if (!promotionMove) return;
     gsRef.current.executeMove({ ...promotionMove, promotion: type });
+    playMove();
     setPromotionMove(null);
     bump();
     scheduleAI();

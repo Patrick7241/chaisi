@@ -7,6 +7,7 @@ import {
   clearCanvas, pixelToSquare, setFlipped, isFlipped
 } from '../game/intl-board.js';
 import { getBestMove } from '../game/ai.js';
+import { playMove, playCapture, playSoundForLastMove } from '../game/sounds.js';
 import { GameNav } from '../components/GameNav.jsx';
 
 // ── Palettes ─────────────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export default function IntlGame() {
       if (move) {
         gsRef.current.selectPiece(move.from.col, move.from.row);
         gsRef.current._execute(move);
+        (move.capture ? playCapture() : playMove());
       }
       bump();
       aiTimerRef.current = setTimeout(scheduleAI, 400);
@@ -189,7 +191,9 @@ export default function IntlGame() {
         if (move?.needsChoice) { setPromotionMove(move); bump(); return; }
       }
 
+      const _histLen = gs.history.length;
       gs.selectPiece(col, row);
+      if (gs.history.length > _histLen) playSoundForLastMove(gs);
       bump();
       scheduleAI();
     }
@@ -213,6 +217,7 @@ export default function IntlGame() {
   const handlePromotion = useCallback((type) => {
     if (!promotionMove) return;
     gsRef.current._execute({ ...promotionMove, promotion: type });
+    playMove();
     setPromotionMove(null);
     bump();
     scheduleAI();

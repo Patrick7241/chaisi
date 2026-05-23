@@ -7,6 +7,7 @@ import {
   clearCanvas, pixelToGrid, setFlipped, isFlipped
 } from '../game/board.js';
 import { getBestMove } from '../game/ai.js';
+import { playMove, playCapture, playSoundForLastMove } from '../game/sounds.js';
 import { GameNav } from '../components/GameNav.jsx';
 
 const CHINESE_PALETTE = [
@@ -101,7 +102,7 @@ export default function ChineseGame() {
       const move = getBestMove(gsRef.current, gsRef.current.currentTurn, aiDepthRef.current);
       aiThinkingRef.current = false;
       setAiThinking(false);
-      if (move) gsRef.current.executeMove(move);
+      if (move) { gsRef.current.executeMove(move); (move.capture ? playCapture() : playMove()); }
       bump();
       aiTimerRef.current = setTimeout(scheduleAI, 400);
     }, 80);
@@ -134,7 +135,9 @@ export default function ChineseGame() {
       const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                        (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
       if (isAITurn) return;
+      const _histLen = gs.moveHistory.length;
       gs.selectPiece(col, row);
+      if (gs.moveHistory.length > _histLen) playSoundForLastMove(gs);
       bump();
       scheduleAI();
     }

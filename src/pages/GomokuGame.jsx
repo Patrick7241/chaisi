@@ -74,7 +74,7 @@ export default function GomokuGame() {
       const move = getBestGomokuMove(gsRef.current, gsRef.current.currentTurn, aiDepthRef.current);
       aiThinkingRef.current = false;
       setAiThinking(false);
-      if (move) gsRef.current.executeMove(move.row, move.col);
+      if (move) { gsRef.current.executeMove(move.row, move.col); playMove(); }
       bump();
       aiTimerRef.current = setTimeout(scheduleAI, 400);
     }, 80);
@@ -91,6 +91,7 @@ export default function GomokuGame() {
     if (!pos) return;
     const ok = gs.executeMove(pos.row, pos.col);
     if (!ok) return;
+    playMove();
     bump();
     if (gs.status === 'win') {
       showToast(`${gs.winner === 'black' ? '黑方' : '白方'} 获胜！`);
