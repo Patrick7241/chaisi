@@ -366,6 +366,46 @@ body {
 }
 .card select:focus { outline: none; border-color: #81b64c; }
 
+/* ── Hybrid game config ───────────────────────────────────────────────────── */
+.hybrid-config { display: flex; flex-direction: column; gap: 8px; }
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.config-label {
+  font-size: 0.8rem;
+  color: #a0a09e;
+  width: 58px;
+  flex-shrink: 0;
+}
+.config-btns {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+}
+.config-btn {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  background: #2e2c2a;
+  color: #a0a09e;
+  border: 1px solid #4a4845;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.config-btn:hover { background: #3a3835; color: #e8e6e3; }
+.config-btn.active {
+  background: #2e3e20;
+  color: #b8e085;
+  border-color: #4a6830;
+  font-weight: 600;
+}
+
 /* ── Setup panel ──────────────────────────────────────────────────────────── */
 .setup-header {
   display: flex;

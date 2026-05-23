@@ -9,24 +9,62 @@ import {
 import { getBestMove } from '../game/ai.js';
 import { GameNav } from '../components/GameNav.jsx';
 
-const RED_PALETTE = [
-  { type: 'general', label: '將' },
-  { type: 'advisor', label: '士' },
-  { type: 'elephant', label: '象' },
-  { type: 'horse', label: '馬' },
-  { type: 'rook_c', label: '車' },
-  { type: 'cannon', label: '砲' },
-  { type: 'soldier', label: '兵' },
+// ── Palettes ─────────────────────────────────────────────────────────────────
+const CHINESE_PALETTE = [
+  { type: 'general',  label: '將', group: '中象' },
+  { type: 'advisor',  label: '士', group: '中象' },
+  { type: 'elephant', label: '象', group: '中象' },
+  { type: 'horse',    label: '馬', group: '中象' },
+  { type: 'rook_c',   label: '車', group: '中象' },
+  { type: 'cannon',   label: '砲', group: '中象' },
+  { type: 'soldier',  label: '兵', group: '中象' },
 ];
-const BLACK_PALETTE = [
-  { type: 'king',   label: '♔' },
-  { type: 'queen',  label: '♕' },
-  { type: 'rook_i', label: '♖' },
-  { type: 'bishop', label: '♗' },
-  { type: 'knight', label: '♘' },
-  { type: 'pawn',   label: '♙' },
+const INTL_PALETTE = [
+  { type: 'king',   label: '♔', group: '国象' },
+  { type: 'queen',  label: '♕', group: '国象' },
+  { type: 'rook_i', label: '♖', group: '国象' },
+  { type: 'bishop', label: '♗', group: '国象' },
+  { type: 'knight', label: '♘', group: '国象' },
+  { type: 'pawn',   label: '♙', group: '国象' },
 ];
+const COMBINED_PALETTE = [...CHINESE_PALETTE, ...INTL_PALETTE];
 
+// ── Initial piece builder ─────────────────────────────────────────────────────
+function buildInitialPieces(redStyle, blackStyle) {
+  const pieces = [];
+  const add = (type, color, col, row) =>
+    pieces.push({ type, color, col, row, hasMoved: false });
+
+  if (redStyle === 'chinese') {
+    // Red Chinese — bottom
+    ['rook_c','horse','elephant','advisor','general','advisor','elephant','horse','rook_c']
+      .forEach((t, c) => add(t, COLOR.RED, c, 9));
+    add('cannon', COLOR.RED, 1, 7); add('cannon', COLOR.RED, 7, 7);
+    [0,2,4,6,8].forEach(c => add('soldier', COLOR.RED, c, 6));
+  } else {
+    // Red International — bottom
+    ['rook_i','knight','bishop','queen','king','bishop','knight','rook_i']
+      .forEach((t, c) => add(t, COLOR.RED, c, 9));
+    for (let c = 0; c < 8; c++) add('pawn', COLOR.RED, c, 8);
+  }
+
+  if (blackStyle === 'intl') {
+    // Black International — top
+    ['rook_i','knight','bishop','queen','king','bishop','knight','rook_i']
+      .forEach((t, c) => add(t, COLOR.BLACK, c, 0));
+    for (let c = 0; c < 8; c++) add('pawn', COLOR.BLACK, c, 1);
+  } else {
+    // Black Chinese — top
+    ['rook_c','horse','elephant','advisor','general','advisor','elephant','horse','rook_c']
+      .forEach((t, c) => add(t, COLOR.BLACK, c, 0));
+    add('cannon', COLOR.BLACK, 1, 2); add('cannon', COLOR.BLACK, 7, 2);
+    [0,2,4,6,8].forEach(c => add('soldier', COLOR.BLACK, c, 3));
+  }
+
+  return pieces;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function HybridGame() {
   const boardCanvasRef = useRef(null);
   const uiCanvasRef    = useRef(null);
@@ -35,11 +73,18 @@ export default function HybridGame() {
 
   const { confirm, alert, prompt, select } = useDialog();
 
-  // Game state – initialised once, mutated in place
-  const gsRef = useRef(null);
-  if (!gsRef.current) gsRef.current = new GameState();
+  // Config refs (used inside stable callbacks)
+  const redStyleRef  = useRef('chinese');
+  const blackStyleRef = useRef('intl');
+  const firstTurnRef = useRef(COLOR.RED);
 
-  // Refs used inside stable callbacks (avoid stale closures)
+  // Game state
+  const gsRef = useRef(null);
+  if (!gsRef.current) {
+    const pieces = buildInitialPieces('chinese', 'intl');
+    gsRef.current = new GameState(pieces, COLOR.RED);
+  }
+
   const aiThinkingRef    = useRef(false);
   const isSetupModeRef   = useRef(false);
   const aiRedRef         = useRef(false);
@@ -49,8 +94,11 @@ export default function HybridGame() {
   const setupColorRef    = useRef(COLOR.RED);
   const setupPieceTypeRef = useRef(null);
 
-  // React state (drives UI re-renders)
+  // React state
   const [tick,          setTick]          = useState(0);
+  const [redStyle,      setRedStyle]      = useState('chinese');
+  const [blackStyle,    setBlackStyle]    = useState('intl');
+  const [firstTurn,     setFirstTurn]     = useState(COLOR.RED);
   const [isSetupMode,   setIsSetupMode]   = useState(false);
   const [setupColor,    setSetupColor]    = useState(COLOR.RED);
   const [setupPieceType,setSetupPieceType]= useState(null);
@@ -67,12 +115,11 @@ export default function HybridGame() {
   const bump = useCallback(() => setTick(t => t + 1), []);
 
   function showToast(msg) {
-    setToastMsg(msg);
-    setToastShow(true);
+    setToastMsg(msg); setToastShow(true);
     setTimeout(() => setToastShow(false), 2000);
   }
 
-  // ── Init canvases (once) ─────────────────────────────────────────────────
+  // ── Init canvases ─────────────────────────────────────────────────────────
   useEffect(() => {
     initCanvas(boardCanvasRef.current);
     initCanvas(uiCanvasRef.current);
@@ -84,7 +131,7 @@ export default function HybridGame() {
     };
   }, []); // eslint-disable-line
 
-  // ── Canvas redraw ────────────────────────────────────────────────────────
+  // ── Canvas redraw ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!canvasReady.current) return;
     clearCanvas();
@@ -99,7 +146,7 @@ export default function HybridGame() {
     }
   }, [tick, isSetupMode]);
 
-  // ── AI scheduling ────────────────────────────────────────────────────────
+  // ── AI scheduling ─────────────────────────────────────────────────────────
   const scheduleAI = useCallback(() => {
     const gs = gsRef.current;
     if (isSetupModeRef.current) return;
@@ -122,7 +169,7 @@ export default function HybridGame() {
     }, 80);
   }, [bump]);
 
-  // ── Canvas click ─────────────────────────────────────────────────────────
+  // ── Canvas click ──────────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
     if (promotionMove) return;
     const rect = uiCanvasRef.current.getBoundingClientRect();
@@ -147,19 +194,14 @@ export default function HybridGame() {
       bump();
     } else {
       const gs = gsRef.current;
-      if (gs.status === 'checkmate' || aiThinkingRef.current) return;
+      if (gs.status === 'checkmate' || gs.status === 'draw' || aiThinkingRef.current) return;
       const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                        (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
       if (isAITurn) return;
 
-      // Intercept promotion moves before executing
       if (gs.selectedPiece) {
         const move = gs.validMoves.find(m => m.to.col === col && m.to.row === row);
-        if (move?.needsChoice) {
-          setPromotionMove(move);
-          bump();
-          return;
-        }
+        if (move?.needsChoice) { setPromotionMove(move); bump(); return; }
       }
 
       gs.selectPiece(col, row);
@@ -186,21 +228,25 @@ export default function HybridGame() {
 
   const handlePromotion = useCallback((type) => {
     if (!promotionMove) return;
-    const move = { ...promotionMove, promotion: type };
-    gsRef.current.executeMove(move);
+    gsRef.current.executeMove({ ...promotionMove, promotion: type });
     setPromotionMove(null);
     bump();
     scheduleAI();
   }, [promotionMove, bump, scheduleAI]);
 
-  // ── Actions ──────────────────────────────────────────────────────────────
-  function handleReset() {
+  // ── Actions ───────────────────────────────────────────────────────────────
+  function startNewGame(rStyle, bStyle, fTurn) {
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     aiThinkingRef.current = false;
     setAiThinking(false);
-    gsRef.current.reset();
+    const pieces = buildInitialPieces(rStyle, bStyle);
+    gsRef.current = new GameState(pieces, fTurn);
     bump();
-    scheduleAI();
+    setTimeout(scheduleAI, 50);
+  }
+
+  function handleReset() {
+    startNewGame(redStyleRef.current, blackStyleRef.current, firstTurnRef.current);
   }
 
   function handleUndo() {
@@ -214,18 +260,16 @@ export default function HybridGame() {
 
   function toggleSetupMode() {
     if (isSetupModeRef.current) {
-      // exit: start game with current layout
       if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
       aiThinkingRef.current = false;
       setAiThinking(false);
       const pieces = gsRef.current.board.pieces.map(p => ({ ...p }));
-      gsRef.current = new GameState(pieces);
+      gsRef.current = new GameState(pieces, firstTurnRef.current);
       isSetupModeRef.current = false;
       setIsSetupMode(false);
       bump();
       scheduleAI();
     } else {
-      // enter setup
       isSetupModeRef.current = true;
       setIsSetupMode(true);
       setupPieceTypeRef.current = null;
@@ -235,56 +279,53 @@ export default function HybridGame() {
   }
 
   async function saveLayout() {
-    const name = await prompt('为这个布局命名', {
-      title: '保存布局',
-      placeholder: '输入布局名称...',
-      confirmText: '保存',
-    });
+    const name = await prompt('为这个布局命名', { title: '保存布局', placeholder: '输入布局名称...', confirmText: '保存' });
     if (!name) return;
     const pieces = gsRef.current.board.pieces.map(({ type, color, col, row }) => ({ type, color, col, row }));
     try {
-      const storageKey = 'chess_layouts_hybrid';
-      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const key = 'chess_layouts_hybrid';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
       existing.push({ name, pieces, createdAt: Date.now() });
-      localStorage.setItem(storageKey, JSON.stringify(existing));
+      localStorage.setItem(key, JSON.stringify(existing));
       showToast(`布局"${name}"已保存！`);
     } catch (e) { await alert('保存失败：' + e.message, { title: '错误' }); }
   }
 
   async function loadLayout() {
     try {
-      const storageKey = 'chess_layouts_hybrid';
-      const layouts = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const key = 'chess_layouts_hybrid';
+      const layouts = JSON.parse(localStorage.getItem(key) || '[]');
       const oldRaw = localStorage.getItem('chess_custom_layout');
       if (oldRaw) layouts.unshift({ name: '已保存布局（旧）', pieces: JSON.parse(oldRaw), createdAt: 0 });
-
-      if (layouts.length === 0) {
-        await alert('没有保存的布局', { title: '提示' });
-        return;
-      }
+      if (layouts.length === 0) { await alert('没有保存的布局', { title: '提示' }); return; }
       const idx = await select('选择要加载的布局', layouts.map(l => l.name), { title: '加载布局' });
       if (idx === false) return;
-      const chosen = layouts[idx];
       gsRef.current.board = new BoardState();
-      chosen.pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
+      layouts[idx].pieces.forEach(p => gsRef.current.board.addPiece({ ...p, hasMoved: false }));
       bump();
-      showToast(`布局"${chosen.name}"已加载！`);
+      showToast(`布局"${layouts[idx].name}"已加载！`);
     } catch (e) { await alert('加载失败：' + e.message, { title: '错误' }); }
   }
 
-  // ── Derived display values ────────────────────────────────────────────────
+  // ── Derived display values ─────────────────────────────────────────────────
   const gs = gsRef.current;
+  const redActive   = !isSetupMode && gs.currentTurn === COLOR.RED;
+  const blackActive = !isSetupMode && gs.currentTurn === COLOR.BLACK;
+
+  const redLabel   = redStyle   === 'chinese' ? '中国象棋' : '国际象棋';
+  const blackLabel = blackStyle === 'intl'    ? '国际象棋' : '中国象棋';
+  const redAvatar  = redStyle   === 'chinese' ? '將' : '♔';
+  const blackAvatar = blackStyle === 'intl'   ? '♚' : '將';
 
   let statusText = '';
   if (isSetupMode) {
-    const sel = setupPieceType
-      ? `已选: ${setupColor === COLOR.RED ? '红' : '黑'}${setupPieceType}`
-      : '点击棋盘放子，右键删除';
+    const sel = setupPieceType ? `已选: ${setupPieceType}` : '点击放子，右键删子';
     statusText = `摆子模式  |  ${sel}`;
   } else if (aiThinking) {
     statusText = '🤖 AI 思考中...';
   } else {
-    const who  = gs.currentTurn === COLOR.RED ? '红方 (中国象棋)' : '黑方 (国际象棋)';
+    const who  = gs.currentTurn === COLOR.RED
+      ? `红方 (${redLabel})` : `黑方 (${blackLabel})`;
     const isAI = (gs.currentTurn === COLOR.RED && aiRed) || (gs.currentTurn === COLOR.BLACK && aiBlack);
     statusText = `当前回合: ${who}${isAI ? ' 🤖' : ''}`;
     if (gs.status === 'check')     statusText += '  ⚠️ 将军!';
@@ -294,10 +335,6 @@ export default function HybridGame() {
       statusText = `✓ 将死！${w} 获胜！`;
     }
   }
-
-  const redActive   = !isSetupMode && gs.currentTurn === COLOR.RED;
-  const blackActive = !isSetupMode && gs.currentTurn === COLOR.BLACK;
-  const palette     = setupColor === COLOR.RED ? RED_PALETTE : BLACK_PALETTE;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -311,13 +348,15 @@ export default function HybridGame() {
       </header>
 
       <div className="game-layout">
-        {/* ── Board area ── */}
         <div className="board-area">
           <div className={`player-bar${blackActive ? ' active' : ''}`}>
-            <div className="player-avatar black-avatar">♚</div>
+            <div className={`player-avatar ${blackStyle === 'intl' ? 'black-avatar' : 'red-avatar'}`}
+                 style={blackStyle !== 'intl' ? { background: 'radial-gradient(circle at 35% 35%,#484848,#0d0d0d)', color:'#ccc', border:'2px solid #000' } : {}}>
+              {blackAvatar}
+            </div>
             <div className="player-info">
               <span className="player-name">黑方</span>
-              <span className="player-sub">国际象棋</span>
+              <span className="player-sub">{blackLabel}</span>
             </div>
             <div className="player-turn-dot" />
           </div>
@@ -325,12 +364,8 @@ export default function HybridGame() {
           <div className="board-container">
             <div className={`canvas-wrapper${boardFlipped ? ' board-flipped' : ''}`}>
               <canvas ref={boardCanvasRef} id="board-canvas" />
-              <canvas
-                ref={uiCanvasRef}
-                id="ui-canvas"
-                onClick={handleCanvasClick}
-                onContextMenu={handleContextMenu}
-              />
+              <canvas ref={uiCanvasRef} id="ui-canvas"
+                onClick={handleCanvasClick} onContextMenu={handleContextMenu} />
               {promotionMove && (
                 <div className="promotion-overlay">
                   <div className="promotion-dialog">
@@ -347,16 +382,17 @@ export default function HybridGame() {
           </div>
 
           <div className={`player-bar${redActive ? ' active' : ''}`}>
-            <div className="player-avatar red-avatar">將</div>
+            <div className={`player-avatar ${redStyle === 'chinese' ? 'red-avatar' : 'white-avatar'}`}>
+              {redAvatar}
+            </div>
             <div className="player-info">
               <span className="player-name">红方</span>
-              <span className="player-sub">中国象棋</span>
+              <span className="player-sub">{redLabel}</span>
             </div>
             <div className="player-turn-dot" />
           </div>
         </div>
 
-        {/* ── Side panel ── */}
         <aside className="side-panel">
           <div className="status-card">{statusText}</div>
 
@@ -365,14 +401,67 @@ export default function HybridGame() {
               {isSetupMode ? '退出摆子' : '摆子模式'}
             </button>
             <button className="btn btn-secondary" onClick={() => {
-              const next = !boardFlipped;
-              setBoardFlipped(next);
-              setFlipped(next);
-              bump();
+              const next = !boardFlipped; setBoardFlipped(next); setFlipped(next); bump();
             }}>↕ 翻转</button>
             <button className="btn btn-secondary" onClick={handleUndo}
               disabled={isSetupMode || gs.moveHistory.length === 0}>悔棋</button>
             <button className="btn btn-primary" onClick={handleReset}>重新开始</button>
+          </div>
+
+          {/* Game config */}
+          <div className="card">
+            <div className="card-title">对局设置</div>
+            <div className="hybrid-config">
+              <div className="config-row">
+                <span className="config-label">红方棋种</span>
+                <div className="config-btns">
+                  <button className={`config-btn${redStyle === 'chinese' ? ' active' : ''}`}
+                    onClick={() => {
+                      redStyleRef.current = 'chinese';
+                      setRedStyle('chinese');
+                    }}>中国象棋</button>
+                  <button className={`config-btn${redStyle === 'intl' ? ' active' : ''}`}
+                    onClick={() => {
+                      redStyleRef.current = 'intl';
+                      setRedStyle('intl');
+                    }}>国际象棋</button>
+                </div>
+              </div>
+              <div className="config-row">
+                <span className="config-label">黑方棋种</span>
+                <div className="config-btns">
+                  <button className={`config-btn${blackStyle === 'chinese' ? ' active' : ''}`}
+                    onClick={() => {
+                      blackStyleRef.current = 'chinese';
+                      setBlackStyle('chinese');
+                    }}>中国象棋</button>
+                  <button className={`config-btn${blackStyle === 'intl' ? ' active' : ''}`}
+                    onClick={() => {
+                      blackStyleRef.current = 'intl';
+                      setBlackStyle('intl');
+                    }}>国际象棋</button>
+                </div>
+              </div>
+              <div className="config-row">
+                <span className="config-label">先手</span>
+                <div className="config-btns">
+                  <button className={`config-btn${firstTurn === COLOR.RED ? ' active' : ''}`}
+                    onClick={() => {
+                      firstTurnRef.current = COLOR.RED;
+                      setFirstTurn(COLOR.RED);
+                    }}>红方</button>
+                  <button className={`config-btn${firstTurn === COLOR.BLACK ? ' active' : ''}`}
+                    onClick={() => {
+                      firstTurnRef.current = COLOR.BLACK;
+                      setFirstTurn(COLOR.BLACK);
+                    }}>黑方</button>
+                </div>
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }}
+                onClick={() => startNewGame(redStyleRef.current, blackStyleRef.current, firstTurnRef.current)}>
+                应用设置并开始
+              </button>
+            </div>
           </div>
 
           {/* AI controls */}
@@ -380,37 +469,19 @@ export default function HybridGame() {
             <div className="card-title">AI 对弈</div>
             <div className="ai-controls">
               <label className="ai-toggle">
-                <input
-                  type="checkbox"
-                  checked={aiRed}
-                  onChange={e => {
-                    aiRedRef.current = e.target.checked;
-                    setAiRed(e.target.checked);
-                    scheduleAI();
-                  }}
-                /> 红方 AI
+                <input type="checkbox" checked={aiRed} onChange={e => {
+                  aiRedRef.current = e.target.checked; setAiRed(e.target.checked); scheduleAI();
+                }} /> 红方 AI
               </label>
               <label className="ai-toggle">
-                <input
-                  type="checkbox"
-                  checked={aiBlack}
-                  onChange={e => {
-                    aiBlackRef.current = e.target.checked;
-                    setAiBlack(e.target.checked);
-                    scheduleAI();
-                  }}
-                /> 黑方 AI
+                <input type="checkbox" checked={aiBlack} onChange={e => {
+                  aiBlackRef.current = e.target.checked; setAiBlack(e.target.checked); scheduleAI();
+                }} /> 黑方 AI
               </label>
             </div>
             <div className="ai-depth-row">
               <span className="card-label">难度:</span>
-              <select
-                value={aiDepth}
-                onChange={e => {
-                  aiDepthRef.current = +e.target.value;
-                  setAiDepth(+e.target.value);
-                }}
-              >
+              <select value={aiDepth} onChange={e => { aiDepthRef.current = +e.target.value; setAiDepth(+e.target.value); }}>
                 <option value={1}>简单</option>
                 <option value={2}>普通</option>
                 <option value={3}>困难</option>
@@ -424,74 +495,64 @@ export default function HybridGame() {
               <div className="setup-header">
                 <span className="setup-title">摆子模式</span>
                 <div className="color-select">
-                  <button
-                    id="sel-color-red"
+                  <button id="sel-color-red"
                     className={`color-btn${setupColor === COLOR.RED ? ' active' : ''}`}
                     onClick={() => {
-                      setupColorRef.current = COLOR.RED;
-                      setupPieceTypeRef.current = null;
-                      setSetupColor(COLOR.RED);
-                      setSetupPieceType(null);
-                    }}
-                  >红方</button>
-                  <button
-                    id="sel-color-black"
+                      setupColorRef.current = COLOR.RED; setupPieceTypeRef.current = null;
+                      setSetupColor(COLOR.RED); setSetupPieceType(null);
+                    }}>红方</button>
+                  <button id="sel-color-black"
                     className={`color-btn${setupColor === COLOR.BLACK ? ' active' : ''}`}
                     onClick={() => {
-                      setupColorRef.current = COLOR.BLACK;
-                      setupPieceTypeRef.current = null;
-                      setSetupColor(COLOR.BLACK);
-                      setSetupPieceType(null);
-                    }}
-                  >黑方</button>
+                      setupColorRef.current = COLOR.BLACK; setupPieceTypeRef.current = null;
+                      setSetupColor(COLOR.BLACK); setSetupPieceType(null);
+                    }}>黑方</button>
                 </div>
                 <div className="setup-tools">
-                  <button
-                    className={`tool-btn${eraseActive ? ' active' : ''}`}
-                    onClick={() => {
-                      const v = !eraseActiveRef.current;
-                      eraseActiveRef.current = v;
-                      setEraseActive(v);
-                      setupPieceTypeRef.current = null;
-                      setSetupPieceType(null);
-                    }}
-                  >🧹 橡皮擦</button>
-                  <button
-                    className="tool-btn"
-                    onClick={async () => {
-                      if (!await confirm('清空棋盘？', { title: '清空棋盘', confirmText: '确定清空', cancelText: '取消' })) return;
-                      gsRef.current.board = new BoardState();
-                      bump();
-                    }}
-                  >清空棋盘</button>
-                  <button
-                    className="tool-btn"
-                    onClick={async () => {
-                      if (!await confirm('恢复默认布局？', { title: '恢复默认', confirmText: '确定恢复', cancelText: '取消' })) return;
-                      gsRef.current.reset();
-                      bump();
-                    }}
-                  >恢复默认</button>
+                  <button className={`tool-btn${eraseActive ? ' active' : ''}`} onClick={() => {
+                    const v = !eraseActiveRef.current; eraseActiveRef.current = v; setEraseActive(v);
+                    setupPieceTypeRef.current = null; setSetupPieceType(null);
+                  }}>🧹 橡皮擦</button>
+                  <button className="tool-btn" onClick={async () => {
+                    if (!await confirm('清空棋盘？', { title: '清空棋盘', confirmText: '确定清空', cancelText: '取消' })) return;
+                    gsRef.current.board = new BoardState(); bump();
+                  }}>清空棋盘</button>
+                  <button className="tool-btn" onClick={async () => {
+                    if (!await confirm('恢复默认布局？', { title: '恢复默认', confirmText: '确定恢复', cancelText: '取消' })) return;
+                    const pieces = buildInitialPieces(redStyleRef.current, blackStyleRef.current);
+                    gsRef.current.board = new BoardState();
+                    pieces.forEach(p => gsRef.current.board.addPiece({ ...p }));
+                    bump();
+                  }}>恢复默认</button>
                 </div>
               </div>
 
+              {/* Combined palette: Chinese + International pieces for whichever color */}
+              <div style={{ marginBottom: 4, fontSize: '0.75rem', color: '#888' }}>中国象棋</div>
               <div className="piece-palette">
-                {palette.map(({ type, label }) => (
-                  <button
-                    key={type}
+                {CHINESE_PALETTE.map(({ type, label }) => (
+                  <button key={type}
                     className={`palette-piece ${setupColor === COLOR.RED ? 'red' : 'black'}${setupPieceType === type ? ' selected' : ''}`}
                     onClick={() => {
-                      setupPieceTypeRef.current = type;
-                      eraseActiveRef.current = false;
-                      setSetupPieceType(type);
-                      setEraseActive(false);
-                    }}
-                  >{label}</button>
+                      setupPieceTypeRef.current = type; eraseActiveRef.current = false;
+                      setSetupPieceType(type); setEraseActive(false);
+                    }}>{label}</button>
+                ))}
+              </div>
+              <div style={{ marginBottom: 4, marginTop: 8, fontSize: '0.75rem', color: '#888' }}>国际象棋</div>
+              <div className="piece-palette">
+                {INTL_PALETTE.map(({ type, label }) => (
+                  <button key={type}
+                    className={`palette-piece ${setupColor === COLOR.RED ? 'red' : 'black'}${setupPieceType === type ? ' selected' : ''}`}
+                    onClick={() => {
+                      setupPieceTypeRef.current = type; eraseActiveRef.current = false;
+                      setSetupPieceType(type); setEraseActive(false);
+                    }}>{label}</button>
                 ))}
               </div>
 
               <div className="setup-footer">
-                <div className="setup-hint">左键放子 · 右键删子 · 橡皮擦模式点击也可删子</div>
+                <div className="setup-hint">左键放子 · 右键删子</div>
                 <div className="setup-actions">
                   <button onClick={saveLayout}>💾 保存布局</button>
                   <button onClick={loadLayout}>📂 加载布局</button>
@@ -506,25 +567,13 @@ export default function HybridGame() {
             <div className="card-title">规则说明</div>
             <div className="rules">
               <ul>
-                <li><strong>红方:</strong> 中国象棋棋子（底部）</li>
-                <li><strong>黑方:</strong> 国际象棋棋子（顶部）</li>
-                <li><strong>河界:</strong> 中间区域，国际棋子不受限</li>
-                <li><strong>象:</strong> 斜走两格，象脚不可被阻</li>
-                <li><strong>马:</strong> 先直走一格，再斜走一格</li>
-                <li><strong>将帅照面:</strong> 同列中间无子则禁止</li>
-                <li><strong>王车易位:</strong> 黑方王未动且车未动可易位（王不可过被攻击格）</li>
-                <li><strong>兵升变:</strong> 黑方兵到达第 9 行升变为后</li>
+                <li><strong>红方:</strong> {redLabel}（底部）</li>
+                <li><strong>黑方:</strong> {blackLabel}（顶部）</li>
+                <li><strong>将帅照面:</strong> 同列中间无子则禁止（两者均有将/帅/王时适用）</li>
+                <li><strong>王车易位:</strong> 国际象棋方可使用（王和车均未动）</li>
+                <li><strong>兵升变:</strong> 国际象棋方兵抵达对方底线升变</li>
+                <li><strong>象:</strong> 中国象棋方的象不可过河</li>
               </ul>
-            </div>
-            <div className="piece-list">
-              <div className="piece-row">
-                <strong>中国象棋 (红):</strong>
-                <span>將&nbsp;士&nbsp;象&nbsp;馬&nbsp;車&nbsp;砲&nbsp;兵</span>
-              </div>
-              <div className="piece-row">
-                <strong>国际象棋 (黑):</strong>
-                <span>♔王&nbsp;♕后&nbsp;♖车&nbsp;♗象&nbsp;♘马&nbsp;♙兵</span>
-              </div>
             </div>
           </div>
         </aside>

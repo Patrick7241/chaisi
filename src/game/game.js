@@ -61,9 +61,10 @@ export class BoardState {
 }
 
 export class GameState {
-  constructor(customPieces = null) {
+  constructor(customPieces = null, firstTurn = COLOR.RED) {
     this.board = new BoardState();
-    this.currentTurn = COLOR.RED;
+    this.currentTurn = firstTurn;
+    this._firstTurn  = firstTurn;
     this.selectedPiece = null;
     this.validMoves = [];
     this.moveHistory = [];
@@ -161,9 +162,9 @@ export class GameState {
   }
 
   isInCheck(color, board) {
-    // Find own king/general
-    const kingType = color === COLOR.RED ? PIECE_TYPES.GENERAL : PIECE_TYPES.KING;
-    const king = board.findPiece(kingType, color);
+    // Works with either GENERAL (Chinese) or KING (International) as the ruler
+    const RULERS = [PIECE_TYPES.GENERAL, PIECE_TYPES.KING];
+    const king = board.pieces.find(p => p.color === color && RULERS.includes(p.type));
     if (!king) return false;
 
     // Check if any enemy piece can attack the king
@@ -183,8 +184,10 @@ export class GameState {
   }
 
   isFacingGenerals(board) {
-    const red = board.findPiece(PIECE_TYPES.GENERAL, COLOR.RED);
-    const black = board.findPiece(PIECE_TYPES.KING, COLOR.BLACK);
+    // Works regardless of whether each side plays Chinese (General) or International (King)
+    const RULERS = [PIECE_TYPES.GENERAL, PIECE_TYPES.KING];
+    const red   = board.pieces.find(p => p.color === COLOR.RED   && RULERS.includes(p.type));
+    const black = board.pieces.find(p => p.color === COLOR.BLACK && RULERS.includes(p.type));
 
     if (!red || !black) return false;
 
@@ -318,9 +321,8 @@ export class GameState {
 
     // Check if current turn is in check
     if (this.isInCheck(this.currentTurn, this.board)) {
-      // Find the king/general
-      const kingType = this.currentTurn === COLOR.RED ? PIECE_TYPES.GENERAL : PIECE_TYPES.KING;
-      this.checkCell = this.board.findPiece(kingType, this.currentTurn);
+      const RULERS = [PIECE_TYPES.GENERAL, PIECE_TYPES.KING];
+      this.checkCell = this.board.pieces.find(p => p.color === this.currentTurn && RULERS.includes(p.type));
 
       if (this.isCheckmate(this.currentTurn, this.board)) {
         this.status = 'checkmate';
@@ -342,7 +344,7 @@ export class GameState {
 
   reset(customPieces = null) {
     this.board = new BoardState();
-    this.currentTurn = COLOR.RED;
+    this.currentTurn = this._firstTurn ?? COLOR.RED;
     this.selectedPiece = null;
     this.validMoves = [];
     this.moveHistory = [];
