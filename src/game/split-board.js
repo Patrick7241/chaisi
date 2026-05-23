@@ -256,7 +256,16 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell, cells)
     validMoves.forEach(move => {
       const { x, y } = gridToPixel(move.to.col, move.to.row);
       const hasTarget = !move.castling && cells && cells[move.to.row]?.[move.to.col];
-      if (move.castling || hasTarget) {
+      if (move.castling) {
+        // King destination: empty dot (click here to castle)
+        ctx.fillStyle = HIGHLIGHT_COLOR;
+        ctx.beginPath(); ctx.arc(x, y, Math.round(CELL_SIZE * 0.155), 0, Math.PI * 2); ctx.fill();
+        // Rook involved: ring indicator
+        const { x: rx, y: ry } = gridToPixel(move.castling.rFrom.col, move.castling.rFrom.row);
+        ctx.strokeStyle = HIGHLIGHT_COLOR;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(rx, ry, PIECE_RADIUS + 3, 0, Math.PI * 2); ctx.stroke();
+      } else if (move.castling || hasTarget) {
         ctx.strokeStyle = HIGHLIGHT_COLOR;
         ctx.lineWidth   = 3;
         ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 3, 0, Math.PI * 2); ctx.stroke();

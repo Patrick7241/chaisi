@@ -55,7 +55,7 @@ function getKingMoves(piece, board) {
     const kr = board.at(7, piece.row);
     if (kr && kr.color === piece.color && rookTypes.includes(kr.type) && !kr.hasMoved &&
         !board.at(5, piece.row) && !board.at(6, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 7, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 6, row: piece.row },
                    capture: null, promotion: null,
                    castling: { kingTo: { col: 6, row: piece.row }, rFrom: { col: 7, row: piece.row }, rTo: { col: 5, row: piece.row } } });
     }
@@ -63,7 +63,7 @@ function getKingMoves(piece, board) {
     const qr = board.at(0, piece.row);
     if (qr && qr.color === piece.color && rookTypes.includes(qr.type) && !qr.hasMoved &&
         !board.at(1, piece.row) && !board.at(2, piece.row) && !board.at(3, piece.row)) {
-      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 0, row: piece.row },
+      moves.push({ from: { col: piece.col, row: piece.row }, to: { col: 2, row: piece.row },
                    capture: null, promotion: null,
                    castling: { kingTo: { col: 2, row: piece.row }, rFrom: { col: 0, row: piece.row }, rTo: { col: 3, row: piece.row } } });
     }

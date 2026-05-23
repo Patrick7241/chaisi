@@ -234,11 +234,19 @@ export function drawHighlights(selected, validMoves, lastMove, checkCell) {
       const cx = BOARD_PADDING + col * CELL_SIZE + CELL_SIZE / 2;
       const cy = BOARD_PADDING + row * CELL_SIZE + CELL_SIZE / 2;
       if (move.castling) {
-        // Castling: ring around the rook square
+        // King destination: empty dot (click here to castle)
+        ctx.fillStyle = HIGHLIGHT_COLOR;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.round(CELL_SIZE * 0.155), 0, Math.PI * 2);
+        ctx.fill();
+        // Rook involved: ring indicator
+        const rc = move.castling.rFrom.col, rr = move.castling.rFrom.row;
+        const rx = BOARD_PADDING + rc * CELL_SIZE + CELL_SIZE / 2;
+        const ry = BOARD_PADDING + rr * CELL_SIZE + CELL_SIZE / 2;
         ctx.strokeStyle = CAPTURE_COLOR;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(cx, cy, PIECE_RADIUS + 3, 0, Math.PI * 2);
+        ctx.arc(rx, ry, PIECE_RADIUS + 3, 0, Math.PI * 2);
         ctx.stroke();
       } else if (move.capture) {
         // Capture target: ring around piece
