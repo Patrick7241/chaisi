@@ -109,7 +109,7 @@ export default function IntlGame() {
   const scheduleAI = useCallback(() => {
     const gs = gsRef.current;
     if (isSetupModeRef.current) return;
-    if (gs.status !== 'ongoing') return;
+    if (gs.status === 'checkmate' || gs.status === 'stalemate' || gs.status === 'draw') return;
     const isAITurn = (gs.currentTurn === COLOR.RED   && aiRedRef.current) ||
                      (gs.currentTurn === COLOR.BLACK  && aiBlackRef.current);
     if (!isAITurn || aiThinkingRef.current) return;
